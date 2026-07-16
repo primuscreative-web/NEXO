@@ -3,13 +3,16 @@ import { defineConfig } from '@playwright/test'
 const env = {
   ...process.env,
   NODE_ENV: 'test',
-  LOG_LEVEL: 'silent',
+  LOG_LEVEL: process.env.CI ? 'info' : 'silent',
 }
 
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  // These journeys intentionally mutate sessions, rate-limit buckets and tenant
+  // state. Retrying an entire serial journey can hide the original failure and
+  // create a different 429/duplicate-state error on the retry.
+  retries: 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   use: { trace: 'retain-on-failure' },
   webServer: [
@@ -22,7 +25,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @nexo/api start',
       port: 3001,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       env,
     },
     {

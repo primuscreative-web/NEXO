@@ -1,32 +1,22 @@
-const foundations = [
-  'Web',
-  'API',
-  'Worker',
-  'Webhook Gateway',
-  'PostgreSQL',
-  'Redis',
-] as const
+import Link from 'next/link'
 
-export default function FoundationPage() {
+export default function HomePage() {
   return (
-    <main>
-      <section className="panel" aria-labelledby="foundation-title">
-        <p className="eyebrow">NEXO · FASE 0</p>
-        <h1 id="foundation-title">Fundação técnica operacional</h1>
-        <p className="summary">
-          Esta superfície confirma o shell do frontend. Nenhuma funcionalidade
-          de negócio foi habilitada.
-        </p>
-        <ul aria-label="Componentes da fundação">
-          {foundations.map((foundation) => (
-            <li key={foundation}>
-              <span aria-hidden="true" />
-              {foundation}
-            </li>
-          ))}
-        </ul>
-        <a href="/health">Verificar health check</a>
-      </section>
+    <main className="state-page">
+      <p className="eyebrow">NEXO · FUNDAÇÃO SAAS</p>
+      <h1>Identidade e organizações preparadas para operações reais.</h1>
+      <p className="summary">
+        Acesse sua conta, selecione uma organização e administre memberships,
+        equipes, permissões, sessões e auditoria.
+      </p>
+      <div className="topbar-actions">
+        <Link className="button primary" href="/login">
+          Entrar
+        </Link>
+        <Link className="button ghost" href="/register">
+          Criar conta
+        </Link>
+      </div>
     </main>
   )
 }

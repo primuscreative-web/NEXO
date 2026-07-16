@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import './styles.css'
 
 export const metadata: Metadata = {
-  title: 'NEXO Foundation',
-  description: 'NEXO technical foundation health surface',
+  title: { default: 'NEXO', template: '%s · NEXO' },
+  description: 'Plataforma empresarial omnichannel NEXO',
 }
 
 export default function RootLayout({

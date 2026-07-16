@@ -2,7 +2,9 @@ import { Controller, Get, ServiceUnavailableException } from '@nestjs/common'
 import { RedisCacheHealthAdapter } from '@nexo/cache'
 import { PostgresDatabaseHealthAdapter } from '@nexo/database'
 import { createHealthSnapshot } from '@nexo/shared'
+import { Public } from './phase1/auth.guard.js'
 
+@Public()
 @Controller('health')
 export class HealthController {
   @Get('live')

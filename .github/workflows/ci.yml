@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -37,9 +38,10 @@ jobs:
       CI: true
       NODE_ENV: test
       LOG_LEVEL: silent
-      DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      OPENAPI_ENABLED: false
+      DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo
       REDIS_URL: redis://localhost:6379
-      TEST_DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      TEST_DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo
       TEST_REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
@@ -52,17 +54,47 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
       - run: pnpm prisma:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
+      - name: Provision restricted application database role
+        env:
+          PGPASSWORD: nexo_ci_only
+        run: |
+          psql -h localhost -U nexo -d nexo -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE nexo_app LOGIN PASSWORD 'nexo_app_ci_only' NOSUPERUSER NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE nexo TO nexo_app;
+          GRANT USAGE ON SCHEMA public, nexo_private TO nexo_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nexo_app;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA nexo_private TO nexo_app;
+          SQL
+      - run: pnpm build
+      - name: Start and verify API for E2E
+        shell: bash
+        run: |
+          openssl genpkey -algorithm ED25519 -out /tmp/nexo-e2e-private.pem
+          openssl pkey -in /tmp/nexo-e2e-private.pem -pubout -out /tmp/nexo-e2e-public.pem
+          export AUTH_JWT_PRIVATE_KEY="$(cat /tmp/nexo-e2e-private.pem)"
+          export AUTH_JWT_PUBLIC_KEY="$(cat /tmp/nexo-e2e-public.pem)"
+          export DATABASE_URL="postgresql://nexo_app:nexo_app_ci_only@localhost:5432/nexo"
+          pnpm --filter @nexo/api exec tsx src/main.ts > api-e2e.log 2>&1 &
+          for attempt in {1..60}; do
+            if (echo > /dev/tcp/127.0.0.1/3001) 2>/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat api-e2e.log
+          exit 1
+      - run: pnpm test:e2e
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:unit
       - run: pnpm test:integration
       - run: pnpm test:coverage
-      - run: pnpm build
-      - run: pnpm test:e2e
       - run: pnpm security:audit
       - uses: actions/upload-artifact@v4
         if: always()
@@ -73,10 +105,13 @@ jobs:
             **/coverage
             playwright-report
             test-results
+            api-e2e.log
           if-no-files-found: ignore
 
   secrets:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
