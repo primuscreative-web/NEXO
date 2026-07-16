@@ -20,7 +20,7 @@ async function bootstrap(): Promise<void> {
   const logger = createLogger({ level: environment.LOG_LEVEL, service: 'api' })
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({ maxParamLength: 256 }),
     { logger: false },
   )
   if (process.env.CI)
