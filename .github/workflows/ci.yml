@@ -56,24 +56,15 @@ jobs:
       - run: pnpm prisma:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
-      - name: Generate disposable E2E signing keys
-        shell: bash
-        run: |
-          openssl genpkey -algorithm ED25519 -out /tmp/nexo-e2e-private.pem
-          openssl pkey -in /tmp/nexo-e2e-private.pem -pubout -out /tmp/nexo-e2e-public.pem
-          {
-            echo 'AUTH_JWT_PRIVATE_KEY<<NEXO_PRIVATE_KEY'
-            cat /tmp/nexo-e2e-private.pem
-            echo 'NEXO_PRIVATE_KEY'
-            echo 'AUTH_JWT_PUBLIC_KEY<<NEXO_PUBLIC_KEY'
-            cat /tmp/nexo-e2e-public.pem
-            echo 'NEXO_PUBLIC_KEY'
-          } >> "$GITHUB_ENV"
       - run: pnpm build
       - name: Start and verify API for E2E
         shell: bash
         run: |
-          pnpm exec tsx apps/api/src/main.ts > api-e2e.log 2>&1 &
+          openssl genpkey -algorithm ED25519 -out /tmp/nexo-e2e-private.pem
+          openssl pkey -in /tmp/nexo-e2e-private.pem -pubout -out /tmp/nexo-e2e-public.pem
+          export AUTH_JWT_PRIVATE_KEY="$(cat /tmp/nexo-e2e-private.pem)"
+          export AUTH_JWT_PUBLIC_KEY="$(cat /tmp/nexo-e2e-public.pem)"
+          pnpm --filter @nexo/api exec tsx src/main.ts > api-e2e.log 2>&1 &
           for attempt in {1..60}; do
             if curl --fail --silent http://localhost:3001/health/live; then
               exit 0
