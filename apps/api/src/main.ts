@@ -47,17 +47,19 @@ async function bootstrap(): Promise<void> {
     }),
   )
   app.useGlobalFilters(new Phase1ExceptionFilter())
-  const openApi = new DocumentBuilder()
-    .setTitle('NEXO API')
-    .setDescription('NEXO Identity and Organization API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build()
-  SwaggerModule.setup(
-    'openapi',
-    app,
-    SwaggerModule.createDocument(app, openApi),
-  )
+  if (process.env.OPENAPI_ENABLED !== 'false') {
+    const openApi = new DocumentBuilder()
+      .setTitle('NEXO API')
+      .setDescription('NEXO Identity and Organization API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build()
+    SwaggerModule.setup(
+      'openapi',
+      app,
+      SwaggerModule.createDocument(app, openApi),
+    )
+  }
   if (process.env.CI)
     process.stderr.write('[api-bootstrap] OpenAPI registered\n')
   const port = parsePort(process.env.API_PORT, 3001)
