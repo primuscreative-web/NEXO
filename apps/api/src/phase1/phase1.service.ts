@@ -76,6 +76,9 @@ const roleNames: Readonly<Record<SystemRoleKey, string>> = {
   finance: 'Financeiro',
 }
 
+const dummyPasswordHash =
+  '$argon2id$v=19$m=19456,t=2,p=1$I1bT0YUdfnI4o3CKhvBQfQ$wxlLgHka8NX+XpjYRflDF1KlaiZIfiVcTP1FoxqwH0c'
+
 @Injectable()
 export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   readonly emails = new InMemoryEmailDeliveryAdapter()
@@ -83,7 +86,6 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   #database: DatabaseClient | null = null
   #databaseUrl: string | null = null
   #tokens: JwtAccessTokenService | null = null
-  #dummyPasswordHash = ''
 
   async onModuleInit(): Promise<void> {
     this.#databaseUrl = process.env.DATABASE_URL ?? null
@@ -110,9 +112,6 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       audience: process.env.AUTH_JWT_AUDIENCE ?? 'nexo-api',
       expiresInSeconds: 900,
     })
-    this.#dummyPasswordHash = await this.#passwordHasher.hash(
-      'Nexo-dummy-credential-2026',
-    )
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -216,10 +215,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           user.credential.passwordHash,
           input.password,
         )
-      : await this.#passwordHasher.verify(
-          this.#dummyPasswordHash,
-          input.password,
-        )
+      : await this.#passwordHasher.verify(dummyPasswordHash, input.password)
 
     if (!user?.credential || !passwordMatches) {
       if (user?.credential) {
