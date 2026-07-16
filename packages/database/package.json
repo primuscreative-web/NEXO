@@ -22,10 +22,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "pg": "8.16.3"
+    "pg": "8.22.0"
   },
   "devDependencies": {
-    "@types/pg": "8.15.5",
+    "@types/pg": "8.20.0",
     "@vitest/coverage-v8": "3.2.6",
     "prisma": "7.8.0",
     "rimraf": "6.0.1",
