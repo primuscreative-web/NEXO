@@ -84,6 +84,7 @@ test.describe('Phase 1 critical journey', () => {
     expect(rolesResponse.ok()).toBeTruthy()
     const roles = (await rolesResponse.json()) as { id: string; key: string }[]
     const agentRole = roles.find((role) => role.key === 'agent')!
+    const analystRole = roles.find((role) => role.key === 'analyst')!
 
     const invitationResponse = await mutation(
       owner,
@@ -152,13 +153,22 @@ test.describe('Phase 1 critical journey', () => {
     const membershipsResponse = await owner.get(
       `${api}/v1/organizations/${organization.id}/memberships`,
     )
-    const memberships = (await membershipsResponse.json()) as {
-      id: string
-      user: { email: string }
-    }[]
+    const memberships = (
+      (await membershipsResponse.json()) as {
+        items: { id: string; user: { email: string } }[]
+      }
+    ).items
     const memberMembership = memberships.find(
       (membership) => membership.user.email === memberEmail,
     )!
+    expect(
+      (
+        await mutation(owner, `/v1/memberships/${memberMembership.id}`, {
+          method: 'patch',
+          data: { roleId: analystRole.id },
+        })
+      ).ok(),
+    ).toBeTruthy()
     const teamResponse = await mutation(owner, '/v1/teams', {
       data: { name: `Equipe ${suffix}` },
     })
@@ -182,19 +192,52 @@ test.describe('Phase 1 critical journey', () => {
       id: string
     }
     await mutation(owner, `/v1/organizations/${secondOrganization.id}/select`)
+    const secondTeam = (await (
+      await mutation(owner, '/v1/teams', {
+        data: { name: `Equipe isolada ${suffix}` },
+      })
+    ).json()) as { id: string }
+    expect(
+      (
+        await mutation(owner, `/v1/teams/${secondTeam.id}/members`, {
+          data: { membershipId: memberMembership.id },
+        })
+      ).status(),
+    ).toBe(422)
     expect(
       (await owner.get(`${api}/v1/organizations/${organization.id}`)).status(),
     ).toBe(404)
     await mutation(owner, `/v1/organizations/${organization.id}/select`)
 
+    expect(
+      (
+        await mutation(owner, `/v1/memberships/${memberMembership.id}`, {
+          method: 'patch',
+          data: { status: 'SUSPENDED' },
+        })
+      ).ok(),
+    ).toBeTruthy()
+    const reinvite = (await (
+      await mutation(
+        owner,
+        `/v1/organizations/${organization.id}/invitations`,
+        { data: { email: memberEmail, roleId: agentRole.id } },
+      )
+    ).json()) as { token: string }
+    expect(
+      (
+        await mutation(member, `/v1/invitations/${reinvite.token}/accept`)
+      ).status(),
+    ).toBe(409)
+
     expect((await owner.get(`${api}/v1/audit-logs`)).ok()).toBeTruthy()
     expect((await member.get(`${api}/v1/audit-logs`)).status()).toBe(403)
 
-    const sessions = (await (
-      await owner.get(`${api}/v1/auth/sessions`)
-    ).json()) as {
-      id: string
-    }[]
+    const sessions = (
+      (await (await owner.get(`${api}/v1/auth/sessions`)).json()) as {
+        items: { id: string }[]
+      }
+    ).items
     expect(sessions.length).toBeGreaterThan(0)
     expect(
       (await mutation(owner, '/v1/auth/sessions/revoke-others')).ok(),
@@ -217,5 +260,100 @@ test.describe('Phase 1 critical journey', () => {
     await owner.dispose()
     await member.dispose()
     await existing.dispose()
+  })
+
+  test('enforces cookie, origin, logout and refresh-family controls', async ({
+    playwright,
+  }) => {
+    const browserSession = await playwright.request.newContext()
+    const email = `security-${suffix}@example.test`
+    const password = 'Nexo-Secure-Password-2026'
+    await registerAndVerify(browserSession, {
+      email,
+      name: 'Security E2E',
+      password,
+    })
+    const login = await browserSession.post(`${api}/v1/auth/login`, {
+      data: { email, password },
+    })
+    expect(login.ok()).toBeTruthy()
+    const cookieState = await browserSession.storageState()
+    expect(
+      cookieState.cookies.find(({ name }) => name === 'nexo_access'),
+    ).toMatchObject({
+      httpOnly: true,
+      sameSite: 'Lax',
+    })
+    expect(
+      cookieState.cookies.find(({ name }) => name === 'nexo_refresh'),
+    ).toMatchObject({
+      httpOnly: true,
+      sameSite: 'Lax',
+    })
+    expect(
+      cookieState.cookies.find(({ name }) => name === 'nexo_csrf')?.httpOnly,
+    ).toBe(false)
+
+    expect((await mutation(browserSession, '/v1/auth/logout')).status()).toBe(
+      204,
+    )
+    expect((await browserSession.get(`${api}/v1/auth/me`)).status()).toBe(401)
+    expect(
+      (await browserSession.storageState()).cookies.filter(({ name }) =>
+        name.startsWith('nexo_'),
+      ),
+    ).toEqual([])
+
+    expect(
+      (
+        await browserSession.post(`${api}/v1/auth/login`, {
+          data: { email, password },
+        })
+      ).ok(),
+    ).toBeTruthy()
+    const originalState = await browserSession.storageState()
+    expect(
+      (await mutation(browserSession, '/v1/auth/refresh')).ok(),
+    ).toBeTruthy()
+    const replay = await playwright.request.newContext({
+      storageState: originalState,
+    })
+    expect((await mutation(replay, '/v1/auth/refresh')).status()).toBe(401)
+    expect((await browserSession.get(`${api}/v1/auth/me`)).status()).toBe(401)
+
+    expect(
+      (
+        await browserSession.post(`${api}/v1/auth/forgot-password`, {
+          headers: { origin: 'https://attacker.example' },
+          data: { email },
+        })
+      ).status(),
+    ).toBe(403)
+    await replay.dispose()
+    await browserSession.dispose()
+  })
+
+  test('runs registration-backed onboarding through the real web interface', async ({
+    page,
+    request,
+  }) => {
+    const email = `frontend-${suffix}@example.test`
+    const password = 'Nexo-Secure-Password-2026'
+    await registerAndVerify(request, { email, name: 'Frontend E2E', password })
+    await page.goto('http://localhost:3000/login')
+    await page.getByLabel('E-mail').fill(email)
+    await page.getByLabel('Senha').fill(password)
+    await page.getByRole('button', { name: 'Entrar' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Suas organizações' }),
+    ).toBeVisible()
+    await page.getByLabel('Nome').fill(`Organização visual ${suffix}`)
+    await page.getByRole('button', { name: 'Criar e selecionar' }).click()
+    await expect(page).toHaveURL(/\/app/u)
+    await page.getByRole('link', { name: 'Pessoas e convites' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Pessoas e convites' }),
+    ).toBeVisible()
+    await expect(page.getByText(email)).toBeVisible()
   })
 })

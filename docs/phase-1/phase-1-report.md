@@ -1,6 +1,6 @@
 # NEXO Phase 1 report
 
-Status: completed on 2026-07-16. The implementation baseline was validated by the published branch CI and is ready for final review; no merge into `main` was performed.
+Status: under final independent review on 2026-07-16. The original branch CI was green, but the review identified mandatory Phase 1 corrections. No merge into `main` has been performed.
 
 ## Executive summary
 
@@ -56,3 +56,18 @@ Local provider-dependent tests explicitly skip when disposable `TEST_DATABASE_UR
 ## Phase 2 boundary
 
 Phase 2 expands the design system, reusable interaction primitives, full accessibility regression coverage and i18n catalogs. The Phase 1 UI intentionally contains only the tokens and components needed for identity and tenant administration.
+
+## Final-review corrections
+
+- refresh-token concurrent reuse now revokes the complete session family; every session revocation also revokes active refresh records;
+- invitation acceptance atomically claims the invitation and cannot reactivate suspended/revoked memberships;
+- last-owner mutations serialize on the organization row;
+- untrusted browser origins are rejected and cookie scope is explicit for preview/production;
+- duplicate registration no longer confirms account existence; failed-login audit uses an irreversible e-mail fingerprint;
+- audit derives the actor membership and propagates correlation/causation/trace identifiers;
+- CI runs the API journey through a disposable `NOSUPERUSER NOBYPASSRLS` role and tests pooled RLS context cleanup;
+- the worker now relays the transactional Outbox with PostgreSQL leases, BullMQ deduplication, retries, backoff and dead-event quarantine;
+- administrative web pages now perform organization updates, invitations, role/status changes, team management, session revocation and password changes;
+- table-driven RBAC, OpenAPI path parity, browser onboarding, cookie/logout/replay, cross-tenant team and Outbox concurrency regressions were added.
+
+The definitive verdict, final commit, workflow and gate evidence will be recorded only after the corrected branch CI completes.

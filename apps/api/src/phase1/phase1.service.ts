@@ -37,6 +37,8 @@ import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose'
 
 export interface RequestContext {
   readonly correlationId: string
+  readonly causationId?: string
+  readonly traceId?: string
   readonly ipAddress?: string
   readonly userAgent?: string
 }
@@ -187,8 +189,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         })
       })
     } catch (error) {
-      if (this.#isUniqueViolation(error))
-        throw new Phase1Error('account_exists', 409, 'Account already exists')
+      if (this.#isUniqueViolation(error)) return { userId }
       throw error
     }
 
@@ -233,7 +234,9 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       await this.#audit(this.#db(), context, {
         action: 'auth.login.failed',
         resourceType: 'User',
-        metadata: { normalizedEmail: normalizeEmail(input.email) },
+        metadata: {
+          emailFingerprint: hashOpaqueToken(normalizeEmail(input.email)),
+        },
       })
       throw new Phase1Error('invalid_credentials', 401, 'Invalid credentials')
     }
@@ -381,30 +384,40 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
 
     const nextRefreshToken = generateOpaqueToken()
     const nextId = randomUUID()
-    await this.#db().$transaction(async (transaction) => {
-      const rotated = await transaction.refreshToken.updateMany({
-        where: { id: token.id, status: 'ACTIVE' },
-        data: {
-          status: 'ROTATED',
-          usedAt: new Date(),
-          replacedById: nextId,
-        },
+    try {
+      await this.#db().$transaction(async (transaction) => {
+        const rotated = await transaction.refreshToken.updateMany({
+          where: { id: token.id, status: 'ACTIVE' },
+          data: {
+            status: 'ROTATED',
+            usedAt: new Date(),
+            replacedById: nextId,
+          },
+        })
+        if (rotated.count !== 1)
+          throw new Phase1Error('refresh_reused', 401, 'Unauthorized')
+        await transaction.refreshToken.create({
+          data: {
+            id: nextId,
+            sessionId: token.sessionId,
+            tokenHash: hashOpaqueToken(nextRefreshToken),
+            expiresAt: token.expiresAt,
+          },
+        })
+        await transaction.session.update({
+          where: { id: token.sessionId },
+          data: { lastSeenAt: new Date() },
+        })
       })
-      if (rotated.count !== 1)
-        throw new Phase1Error('refresh_reused', 401, 'Unauthorized')
-      await transaction.refreshToken.create({
-        data: {
-          id: nextId,
-          sessionId: token.sessionId,
-          tokenHash: hashOpaqueToken(nextRefreshToken),
-          expiresAt: token.expiresAt,
-        },
-      })
-      await transaction.session.update({
-        where: { id: token.sessionId },
-        data: { lastSeenAt: new Date() },
-      })
-    })
+    } catch (error) {
+      if (error instanceof Phase1Error && error.code === 'refresh_reused') {
+        await this.#revokeSessionFamily(
+          token.sessionId,
+          'refresh_reuse_detected',
+        )
+      }
+      throw error
+    }
 
     return {
       accessToken: await this.#tokenService().sign({
@@ -500,11 +513,21 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           revokeReason: 'password_reset',
         },
       })
+      await transaction.refreshToken.updateMany({
+        where: { session: { userId: token.userId }, status: 'ACTIVE' },
+        data: { status: 'REVOKED', revokedAt: new Date() },
+      })
       await this.#audit(transaction, context, {
         action: 'auth.password.reset',
         actorUserId: token.userId,
         resourceType: 'User',
         resourceId: token.userId,
+      })
+      await this.#outbox(transaction, context, {
+        eventType: 'UserPasswordChanged',
+        actorId: token.userId,
+        aggregateId: token.userId,
+        payload: { userId: token.userId, reason: 'password_reset' },
       })
     })
   }
@@ -546,19 +569,36 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           revokeReason: 'password_changed',
         },
       })
+      await transaction.refreshToken.updateMany({
+        where: {
+          session: {
+            userId: principal.userId,
+            id: { not: principal.sessionId },
+          },
+          status: 'ACTIVE',
+        },
+        data: { status: 'REVOKED', revokedAt: new Date() },
+      })
       await this.#audit(transaction, context, {
-        action: 'auth.password.reset',
+        action: 'auth.password.changed',
         actorUserId: principal.userId,
         resourceType: 'User',
         resourceId: principal.userId,
       })
+      await this.#outbox(transaction, context, {
+        eventType: 'UserPasswordChanged',
+        actorId: principal.userId,
+        aggregateId: principal.userId,
+        payload: { userId: principal.userId, reason: 'password_changed' },
+      })
     })
   }
 
-  listSessions(principal: AuthPrincipal) {
-    return this.#db().session.findMany({
+  async listSessions(principal: AuthPrincipal) {
+    const items = await this.#db().session.findMany({
       where: { userId: principal.userId },
       orderBy: { createdAt: 'desc' },
+      take: 101,
       select: {
         id: true,
         status: true,
@@ -570,6 +610,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         createdAt: true,
       },
     })
+    return this.#page(items, 100)
   }
 
   async revokeSession(
@@ -587,19 +628,31 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   }
 
   async revokeOtherSessions(principal: AuthPrincipal): Promise<number> {
-    const result = await this.#db().session.updateMany({
-      where: {
-        userId: principal.userId,
-        id: { not: principal.sessionId },
-        status: 'ACTIVE',
-      },
-      data: {
-        status: 'REVOKED',
-        revokedAt: new Date(),
-        revokeReason: 'revoke_others',
-      },
+    return this.#db().$transaction(async (transaction) => {
+      const sessions = await transaction.session.findMany({
+        where: {
+          userId: principal.userId,
+          id: { not: principal.sessionId },
+          status: 'ACTIVE',
+        },
+        select: { id: true },
+      })
+      const ids = sessions.map(({ id }) => id)
+      if (ids.length === 0) return 0
+      await transaction.refreshToken.updateMany({
+        where: { sessionId: { in: ids }, status: 'ACTIVE' },
+        data: { status: 'REVOKED', revokedAt: new Date() },
+      })
+      const result = await transaction.session.updateMany({
+        where: { id: { in: ids }, status: 'ACTIVE' },
+        data: {
+          status: 'REVOKED',
+          revokedAt: new Date(),
+          revokeReason: 'revoke_others',
+        },
+      })
+      return result.count
     })
-    return result.count
   }
 
   async me(principal: AuthPrincipal) {
@@ -827,22 +880,31 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     )
   }
 
-  async listMemberships(principal: AuthPrincipal, organizationId: string) {
+  async listMemberships(
+    principal: AuthPrincipal,
+    organizationId: string,
+    input: { cursor?: string; limit?: number } = {},
+  ) {
+    const limit = this.#limit(input.limit)
     return this.#authorized(
       principal,
       organizationId,
       'membership.read',
       (tx) =>
-        tx.membership.findMany({
-          where: { organizationId },
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: {
-              select: { id: true, email: true, name: true, status: true },
+        tx.membership
+          .findMany({
+            where: { organizationId },
+            orderBy: { createdAt: 'desc' },
+            take: limit + 1,
+            ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+            include: {
+              user: {
+                select: { id: true, email: true, name: true, status: true },
+              },
+              role: { select: { id: true, key: true, name: true } },
             },
-            role: { select: { id: true, key: true, name: true } },
-          },
-        }),
+          })
+          .then((items) => this.#page(items, limit)),
     )
   }
 
@@ -951,31 +1013,51 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         })
         if (user.normalizedEmail !== invitation.normalizedEmail)
           throw new Phase1Error('invitation_email_mismatch', 403, 'Forbidden')
-        const membership = await transaction.membership.upsert({
+        const claimed = await transaction.invitation.updateMany({
+          where: {
+            id: invitation.id,
+            organizationId,
+            status: 'PENDING',
+            expiresAt: { gt: new Date() },
+          },
+          data: { status: 'ACCEPTED', acceptedAt: new Date() },
+        })
+        if (claimed.count !== 1)
+          throw new Phase1Error('invalid_invitation', 400, 'Invalid invitation')
+        const currentMembership = await transaction.membership.findUnique({
           where: {
             organizationId_userId: { organizationId, userId: principal.userId },
           },
-          create: {
-            organizationId,
-            userId: principal.userId,
-            roleId: invitation.roleId,
-            status: 'ACTIVE',
-            invitedBy: invitation.invitedBy,
-            invitedAt: invitation.createdAt,
-            acceptedAt: new Date(),
-          },
-          update: {
-            roleId: invitation.roleId,
-            status: 'ACTIVE',
-            acceptedAt: new Date(),
-            suspendedAt: null,
-            revokedAt: null,
-          },
         })
-        await transaction.invitation.update({
-          where: { id: invitation.id },
-          data: { status: 'ACCEPTED', acceptedAt: new Date() },
-        })
+        if (
+          currentMembership &&
+          !['INVITED', 'ACTIVE'].includes(currentMembership.status)
+        )
+          throw new Phase1Error(
+            'membership_inactive',
+            409,
+            'Membership is inactive',
+          )
+        const membership = currentMembership
+          ? await transaction.membership.update({
+              where: { id: currentMembership.id },
+              data: {
+                roleId: invitation.roleId,
+                status: 'ACTIVE',
+                acceptedAt: currentMembership.acceptedAt ?? new Date(),
+              },
+            })
+          : await transaction.membership.create({
+              data: {
+                organizationId,
+                userId: principal.userId,
+                roleId: invitation.roleId,
+                status: 'ACTIVE',
+                invitedBy: invitation.invitedBy,
+                invitedAt: invitation.createdAt,
+                acceptedAt: new Date(),
+              },
+            })
         await this.#audit(transaction, context, {
           action: 'invitation.accepted',
           organizationId,
@@ -1107,6 +1189,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
               },
             })
           : membership.role
+        await this.#lockOrganizationOwnership(transaction, organizationId)
         const activeOwnerCount = await transaction.membership.count({
           where: {
             organizationId,
@@ -1140,6 +1223,22 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           before: { roleId: membership.roleId, status: membership.status },
           after: { roleId: updated.roleId, status: updated.status },
         })
+        await this.#outbox(transaction, context, {
+          eventType:
+            membership.roleId !== nextRole.id
+              ? 'RoleAssigned'
+              : nextStatus === 'SUSPENDED'
+                ? 'MembershipSuspended'
+                : 'MembershipActivated',
+          organizationId,
+          actorId: principal.userId,
+          aggregateId: membership.id,
+          payload: {
+            membershipId: membership.id,
+            roleId: updated.roleId,
+            status: updated.status,
+          },
+        })
         return updated
       },
     )
@@ -1162,6 +1261,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           },
           include: { role: true },
         })
+        await this.#lockOrganizationOwnership(transaction, organizationId)
         const activeOwnerCount = await transaction.membership.count({
           where: { organizationId, status: 'ACTIVE', role: { key: 'owner' } },
         })
@@ -1180,6 +1280,13 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           actorUserId: principal.userId,
           resourceType: 'Membership',
           resourceId: membership.id,
+        })
+        await this.#outbox(transaction, context, {
+          eventType: 'MembershipRevoked',
+          organizationId,
+          actorId: principal.userId,
+          aggregateId: membership.id,
+          payload: { membershipId: membership.id },
         })
       },
     )
@@ -1203,14 +1310,22 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     )
   }
 
-  async listTeams(principal: AuthPrincipal) {
+  async listTeams(
+    principal: AuthPrincipal,
+    input: { cursor?: string; limit?: number } = {},
+  ) {
     const organizationId = this.#requireOrganization(principal)
+    const limit = this.#limit(input.limit)
     return this.#authorized(principal, organizationId, 'team.read', (tx) =>
-      tx.team.findMany({
-        where: { organizationId },
-        include: { members: true },
-        orderBy: { createdAt: 'desc' },
-      }),
+      tx.team
+        .findMany({
+          where: { organizationId },
+          include: { members: true },
+          orderBy: { createdAt: 'desc' },
+          take: limit + 1,
+          ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+        })
+        .then((items) => this.#page(items, limit)),
     )
   }
 
@@ -1260,6 +1375,13 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           actorUserId: principal.userId,
           resourceType: 'Team',
           resourceId: team.id,
+        })
+        await this.#outbox(transaction, context, {
+          eventType: 'TeamCreated',
+          organizationId,
+          actorId: principal.userId,
+          aggregateId: team.id,
+          payload: { teamId: team.id },
         })
         return team
       },
@@ -1379,6 +1501,13 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           resourceId: teamId,
           metadata: { membershipId },
         })
+        await this.#outbox(transaction, context, {
+          eventType: 'TeamMemberAdded',
+          organizationId,
+          actorId: principal.userId,
+          aggregateId: teamId,
+          payload: { teamId, membershipId },
+        })
         return member
       },
     )
@@ -1413,6 +1542,13 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           resourceId: teamId,
           metadata: { membershipId },
         })
+        await this.#outbox(transaction, context, {
+          eventType: 'TeamMemberRemoved',
+          organizationId,
+          actorId: principal.userId,
+          aggregateId: teamId,
+          payload: { teamId, membershipId },
+        })
       },
     )
   }
@@ -1424,15 +1560,17 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     const organizationId = this.#requireOrganization(principal)
     const limit = Math.min(Math.max(input.limit ?? 25, 1), 100)
     return this.#authorized(principal, organizationId, 'audit.read', (tx) =>
-      tx.auditLog.findMany({
-        where: {
-          organizationId,
-          ...(input.action ? { action: input.action } : {}),
-        },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: limit + 1,
-        ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
-      }),
+      tx.auditLog
+        .findMany({
+          where: {
+            organizationId,
+            ...(input.action ? { action: input.action } : {}),
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: limit + 1,
+          ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+        })
+        .then((items) => this.#page(items, limit)),
     )
   }
 
@@ -1492,16 +1630,57 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       )
   }
 
+  async #lockOrganizationOwnership(
+    transaction: DatabaseTransaction,
+    organizationId: string,
+  ): Promise<void> {
+    await transaction.$queryRaw`
+      SELECT "id"
+      FROM "organization_organizations"
+      WHERE "id" = ${organizationId}::uuid
+      FOR UPDATE
+    `
+  }
+
   async #revokeSession(
     userId: string,
     sessionId: string,
     reason: string,
   ): Promise<void> {
-    const result = await this.#db().session.updateMany({
-      where: { id: sessionId, userId, status: 'ACTIVE' },
-      data: { status: 'REVOKED', revokedAt: new Date(), revokeReason: reason },
+    const result = await this.#db().$transaction(async (transaction) => {
+      const revoked = await transaction.session.updateMany({
+        where: { id: sessionId, userId, status: 'ACTIVE' },
+        data: {
+          status: 'REVOKED',
+          revokedAt: new Date(),
+          revokeReason: reason,
+        },
+      })
+      if (revoked.count === 1)
+        await transaction.refreshToken.updateMany({
+          where: { sessionId, status: 'ACTIVE' },
+          data: { status: 'REVOKED', revokedAt: new Date() },
+        })
+      return revoked
     })
     if (result.count !== 1) throw new Phase1Error('not_found', 404, 'Not found')
+  }
+
+  async #revokeSessionFamily(sessionId: string, reason: string): Promise<void> {
+    await this.#db().$transaction(async (transaction) => {
+      await transaction.session.updateMany({
+        where: { id: sessionId },
+        data: {
+          status: 'REVOKED',
+          revokedAt: new Date(),
+          revokeReason: reason,
+        },
+      })
+      await transaction.refreshToken.updateMany({
+        where: { sessionId, status: { in: ['ACTIVE', 'ROTATED'] } },
+        data: { status: 'REVOKED', revokedAt: new Date() },
+      })
+    })
   }
 
   async #audit(
@@ -1519,6 +1698,21 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       after?: Readonly<Record<string, unknown>>
     },
   ): Promise<void> {
+    const actorMembershipId =
+      input.actorMembershipId ??
+      (input.organizationId && input.actorUserId
+        ? (
+            await transaction.membership.findUnique({
+              where: {
+                organizationId_userId: {
+                  organizationId: input.organizationId,
+                  userId: input.actorUserId,
+                },
+              },
+              select: { id: true },
+            })
+          )?.id
+        : undefined)
     await transaction.auditLog.create({
       data: {
         action: input.action,
@@ -1530,13 +1724,13 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         ...(input.actorUserId
           ? { actorUser: { connect: { id: input.actorUserId } } }
           : {}),
-        ...(input.actorMembershipId && input.organizationId
+        ...(actorMembershipId && input.organizationId
           ? {
               actorMembership: {
                 connect: {
                   organizationId_id: {
                     organizationId: input.organizationId,
-                    id: input.actorMembershipId,
+                    id: actorMembershipId,
                   },
                 },
               },
@@ -1545,6 +1739,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         ...(input.resourceId ? { resourceId: input.resourceId } : {}),
         ...(context.ipAddress ? { ipAddress: context.ipAddress } : {}),
         ...(context.userAgent ? { userAgent: context.userAgent } : {}),
+        ...(context.traceId ? { traceId: context.traceId } : {}),
         ...(input.metadata
           ? { metadata: sanitizeAuditMetadata(input.metadata) as object }
           : {}),
@@ -1596,6 +1791,19 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         'Select an organization',
       )
     return principal.organizationId
+  }
+
+  #limit(value?: number): number {
+    return Number.isFinite(value) ? Math.min(Math.max(value ?? 25, 1), 100) : 25
+  }
+
+  #page<T extends { id: string }>(items: T[], limit: number) {
+    const hasMore = items.length > limit
+    const pageItems = hasMore ? items.slice(0, limit) : items
+    return {
+      items: pageItems,
+      nextCursor: hasMore ? (pageItems.at(-1)?.id ?? null) : null,
+    }
   }
 
   #db(): DatabaseClient {

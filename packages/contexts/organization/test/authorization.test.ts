@@ -7,9 +7,32 @@ import {
   assertTenant,
   normalizeSlug,
   rolePermissions,
+  permissionKeys,
+  type SystemRoleKey,
 } from '../src/index.js'
 
 describe('Organization authorization', () => {
+  const roles = Object.keys(rolePermissions) as SystemRoleKey[]
+
+  it.each(
+    roles.flatMap((role) =>
+      permissionKeys.map((permission) => ({ role, permission })),
+    ),
+  )(
+    'applies the canonical $role/$permission matrix',
+    ({ role, permission }) => {
+      const operation = () =>
+        assertAuthorized({
+          permission,
+          permissions: rolePermissions[role],
+          membershipStatus: 'ACTIVE',
+          organizationStatus: 'ACTIVE',
+        })
+      if (rolePermissions[role].has(permission)) expect(operation).not.toThrow()
+      else expect(operation).toThrow(AuthorizationDeniedError)
+    },
+  )
+
   it('is deny-by-default and blocks inactive membership', () => {
     expect(() =>
       assertAuthorized({

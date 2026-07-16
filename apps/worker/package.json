@@ -19,8 +19,12 @@
     "@nestjs/core": "catalog:",
     "@nestjs/platform-fastify": "catalog:",
     "@nexo/config": "workspace:*",
+    "@nexo/database": "workspace:*",
+    "@nexo/events": "workspace:*",
     "@nexo/observability": "workspace:*",
+    "@nexo/platform": "workspace:*",
     "@nexo/shared": "workspace:*",
+    "bullmq": "5.79.3",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:"
   },

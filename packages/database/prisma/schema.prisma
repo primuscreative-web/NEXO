@@ -356,7 +356,6 @@ model OutboxEvent {
   createdAt        DateTime      @default(now()) @db.Timestamptz(3)
   organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
-  @@unique([eventType, aggregateId, aggregateVersion])
   @@index([status, nextAttemptAt, createdAt])
   @@index([organizationId, createdAt(sort: Desc)])
   @@map("platform_outbox_events")

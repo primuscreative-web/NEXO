@@ -57,6 +57,17 @@ jobs:
       - run: pnpm prisma:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
+      - name: Provision restricted application database role
+        env:
+          PGPASSWORD: nexo_ci_only
+        run: |
+          psql -h localhost -U nexo -d nexo -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE nexo_app LOGIN PASSWORD 'nexo_app_ci_only' NOSUPERUSER NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE nexo TO nexo_app;
+          GRANT USAGE ON SCHEMA public, nexo_private TO nexo_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nexo_app;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA nexo_private TO nexo_app;
+          SQL
       - run: pnpm build
       - name: Start and verify API for E2E
         shell: bash
@@ -65,6 +76,7 @@ jobs:
           openssl pkey -in /tmp/nexo-e2e-private.pem -pubout -out /tmp/nexo-e2e-public.pem
           export AUTH_JWT_PRIVATE_KEY="$(cat /tmp/nexo-e2e-private.pem)"
           export AUTH_JWT_PUBLIC_KEY="$(cat /tmp/nexo-e2e-public.pem)"
+          export DATABASE_URL="postgresql://nexo_app:nexo_app_ci_only@localhost:5432/nexo"
           pnpm --filter @nexo/api exec tsx src/main.ts > api-e2e.log 2>&1 &
           for attempt in {1..60}; do
             if (echo > /dev/tcp/127.0.0.1/3001) 2>/dev/null; then

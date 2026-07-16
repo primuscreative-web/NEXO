@@ -12,6 +12,7 @@ import { parsePort, parseServiceEnvironment } from '@nexo/config'
 import { createLogger } from '@nexo/observability'
 import { AppModule } from './app.module.js'
 import { Phase1ExceptionFilter } from './phase1/phase1-exception.filter.js'
+import { isTrustedMutationOrigin } from './phase1/request-origin.js'
 
 async function bootstrap(): Promise<void> {
   if (process.env.CI)
@@ -34,11 +35,37 @@ async function bootstrap(): Promise<void> {
   })
   if (process.env.CI)
     process.stderr.write('[api-bootstrap] security headers registered\n')
+  const allowedOrigins = (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
   app.enableCors({
-    origin: (process.env.WEB_ORIGIN ?? 'http://localhost:3000').split(','),
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   })
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRequest', (request, reply, done) => {
+      if (
+        !isTrustedMutationOrigin({
+          method: request.method,
+          ...(request.headers.origin ? { origin: request.headers.origin } : {}),
+          allowedOrigins,
+        })
+      ) {
+        reply.code(403).send({
+          error: {
+            code: 'untrusted_origin',
+            message: 'Forbidden',
+            correlationId: crypto.randomUUID(),
+          },
+        })
+        return
+      }
+      done()
+    })
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

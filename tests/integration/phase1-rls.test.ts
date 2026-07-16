@@ -83,6 +83,40 @@ describe.skipIf(!configured)('Phase 1 PostgreSQL isolation', () => {
     }
   })
 
+  it('clears transaction-local tenant context before a pooled connection is reused', async () => {
+    const client = await pool!.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query('SET LOCAL ROLE nexo_phase1_test_app')
+      await client.query(
+        `SELECT set_config('app.current_organization_id', $1, true)`,
+        [ids.organizationA],
+      )
+      expect(
+        (
+          await client.query<{ tenant: string }>(
+            `SELECT current_setting('app.current_organization_id', true) AS tenant`,
+          )
+        ).rows[0]?.tenant,
+      ).toBe(ids.organizationA)
+      await client.query('COMMIT')
+
+      await client.query('BEGIN')
+      await client.query('SET LOCAL ROLE nexo_phase1_test_app')
+      const context = await client.query<{ tenant: string | null }>(
+        `SELECT NULLIF(current_setting('app.current_organization_id', true), '') AS tenant`,
+      )
+      expect(context.rows[0]?.tenant).toBeNull()
+      const visible = await client.query(
+        `SELECT "id" FROM "organization_organizations"`,
+      )
+      expect(visible.rows).toEqual([])
+      await client.query('ROLLBACK')
+    } finally {
+      client.release()
+    }
+  })
+
   it('keeps audit records append-only', async () => {
     const correlationId = '20000000-0000-4000-8000-000000000001'
     const created = await pool!.query<{ id: string }>(

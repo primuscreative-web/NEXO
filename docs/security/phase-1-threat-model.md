@@ -29,3 +29,5 @@ Browser → Web/API; API → PostgreSQL/Redis; API → e-mail adapter; worker �
 ## Security assumptions
 
 Production runs behind TLS and a trusted proxy that sanitizes forwarding headers. Secrets come from a managed secret store. Migration credentials are not available to application processes. No production credential or customer data is used in development or CI.
+
+The official CI E2E starts the API with a disposable `NOSUPERUSER NOBYPASSRLS` role instead of the migration owner. Browser mutations are rejected when an `Origin` header is present and is not in `WEB_ORIGIN`. Preview environments must set their exact origin and `COOKIE_SECURE=true`; cross-subdomain deployments may set an explicit `COOKIE_DOMAIN`.

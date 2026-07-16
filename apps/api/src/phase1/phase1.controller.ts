@@ -239,8 +239,14 @@ export class Phase1Controller {
   memberships(
     @Param('organizationId') organizationId: string,
     @Req() request: AuthenticatedRequest,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.phase1.listMemberships(this.#principal(request), organizationId)
+    return this.phase1.listMemberships(
+      this.#principal(request),
+      organizationId,
+      this.#page(cursor, limit),
+    )
   }
 
   @Post('organizations/:organizationId/invitations')
@@ -344,8 +350,15 @@ export class Phase1Controller {
   }
 
   @Get('teams')
-  teams(@Req() request: AuthenticatedRequest) {
-    return this.phase1.listTeams(this.#principal(request))
+  teams(
+    @Req() request: AuthenticatedRequest,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.phase1.listTeams(
+      this.#principal(request),
+      this.#page(cursor, limit),
+    )
   }
 
   @Get('teams/:id')
@@ -453,10 +466,18 @@ export class Phase1Controller {
 
   #context(request: AuthenticatedRequest) {
     const correlation = request.headers['x-correlation-id']
+    const causation = request.headers['x-causation-id']
+    const trace = request.headers.traceparent
     const userAgent = request.headers['user-agent']
     return {
       correlationId:
-        typeof correlation === 'string' ? correlation : crypto.randomUUID(),
+        typeof correlation === 'string' && isUuid(correlation)
+          ? correlation
+          : crypto.randomUUID(),
+      ...(typeof causation === 'string' && isUuid(causation)
+        ? { causationId: causation }
+        : {}),
+      ...(typeof trace === 'string' ? { traceId: trace.slice(0, 64) } : {}),
       ...(request.ip ? { ipAddress: request.ip } : {}),
       ...(typeof userAgent === 'string' ? { userAgent } : {}),
     }
@@ -465,6 +486,13 @@ export class Phase1Controller {
   #assertCsrf(request: AuthenticatedRequest, header: string | undefined): void {
     if (!header || header !== request.cookies?.nexo_csrf)
       throw new Phase1Error('invalid_csrf', 403, 'Forbidden')
+  }
+
+  #page(cursor?: string, limit?: string) {
+    return {
+      ...(cursor ? { cursor } : {}),
+      ...(limit ? { limit: Number(limit) } : {}),
+    }
   }
 
   #setAuthCookies(
@@ -478,7 +506,7 @@ export class Phase1Controller {
       maxAge: 30 * 24 * 60 * 60,
     })
     reply.setCookie('nexo_csrf', result.csrfToken, {
-      secure: process.env.NODE_ENV === 'production',
+      ...this.#cookieScope(),
       sameSite: 'lax',
       path: '/',
       maxAge: 30 * 24 * 60 * 60,
@@ -486,9 +514,12 @@ export class Phase1Controller {
   }
 
   #clearAuthCookies(reply: CookieReply): void {
-    reply.clearCookie('nexo_access', { path: '/' })
-    reply.clearCookie('nexo_refresh', { path: '/v1/auth' })
-    reply.clearCookie('nexo_csrf', { path: '/' })
+    reply.clearCookie('nexo_access', { ...this.#cookieScope(), path: '/' })
+    reply.clearCookie('nexo_refresh', {
+      ...this.#cookieScope(),
+      path: '/v1/auth',
+    })
+    reply.clearCookie('nexo_csrf', { ...this.#cookieScope(), path: '/' })
   }
 
   #accessCookie() {
@@ -498,8 +529,25 @@ export class Phase1Controller {
   #secureCookie() {
     return {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      ...this.#cookieScope(),
       sameSite: 'lax' as const,
     }
   }
+
+  #cookieScope() {
+    return {
+      secure:
+        process.env.COOKIE_SECURE === 'true' ||
+        process.env.NODE_ENV === 'production',
+      ...(process.env.COOKIE_DOMAIN
+        ? { domain: process.env.COOKIE_DOMAIN }
+        : {}),
+    }
+  }
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+    value,
+  )
 }

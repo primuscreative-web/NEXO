@@ -11,6 +11,7 @@ function csrfToken(): string | undefined {
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
+  retry = true,
 ): Promise<T> {
   const method = init.method?.toUpperCase() ?? 'GET'
   const csrf = !['GET', 'HEAD', 'OPTIONS'].includes(method)
@@ -22,9 +23,24 @@ export async function apiFetch<T>(
   if (csrf) headers.set('x-csrf-token', decodeURIComponent(csrf))
   const response = await fetch(`${apiUrl}${path}`, {
     ...init,
+    cache: init.cache ?? 'no-store',
     credentials: 'include',
     headers,
   })
+  if (
+    response.status === 401 &&
+    retry &&
+    !path.startsWith('/v1/auth/login') &&
+    !path.startsWith('/v1/auth/refresh')
+  ) {
+    try {
+      await apiFetch('/v1/auth/refresh', { method: 'POST' }, false)
+      return await apiFetch<T>(path, init, false)
+    } catch {
+      if (typeof window !== 'undefined')
+        window.location.assign('/login?expired=1')
+    }
+  }
   if (response.status === 204) return undefined as T
   const body = (await response.json()) as T & {
     error?: { code: string; message: string }

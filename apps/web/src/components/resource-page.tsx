@@ -41,7 +41,13 @@ export function ResourcePage({
           signal: controller.signal,
         })
     request
-      .then(setItems)
+      .then((result) =>
+        setItems(
+          Array.isArray(result)
+            ? result
+            : ((result as { items?: Record<string, unknown>[] }).items ?? []),
+        ),
+      )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : 'Falha ao carregar.'),
       )
