@@ -56,14 +56,14 @@ jobs:
       - run: pnpm prisma:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
+      - run: pnpm build
+      - run: pnpm test:e2e
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:unit
       - run: pnpm test:integration
       - run: pnpm test:coverage
-      - run: pnpm build
-      - run: pnpm test:e2e
       - run: pnpm security:audit
       - uses: actions/upload-artifact@v4
         if: always()
