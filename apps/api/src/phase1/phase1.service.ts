@@ -81,12 +81,12 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   readonly emails = new InMemoryEmailDeliveryAdapter()
   readonly #passwordHasher = new Argon2idPasswordHasher()
   #database: DatabaseClient | null = null
+  #databaseUrl: string | null = null
   #tokens: JwtAccessTokenService | null = null
   #dummyPasswordHash = ''
 
   async onModuleInit(): Promise<void> {
-    if (process.env.DATABASE_URL)
-      this.#database = createDatabaseClient(process.env.DATABASE_URL)
+    this.#databaseUrl = process.env.DATABASE_URL ?? null
 
     let privateKeyPem = process.env.AUTH_JWT_PRIVATE_KEY?.replaceAll(
       '\\n',
@@ -1601,6 +1601,8 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   }
 
   #db(): DatabaseClient {
+    if (!this.#database && this.#databaseUrl)
+      this.#database = createDatabaseClient(this.#databaseUrl)
     if (!this.#database)
       throw new Phase1Error(
         'database_unavailable',
