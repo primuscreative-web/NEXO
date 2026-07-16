@@ -116,7 +116,7 @@ Production credentials are prohibited in local development and tests. `.env.exam
 | Security audit       | Pass                     | no known vulnerabilities in final lockfile                                                                           |
 | Secrets              | Pass                     | placeholder-only example; secret files and generated artifacts ignored                                               |
 | Docker               | Optional                 | artifacts retained; excluded from required gates by ADR-012                                                          |
-| CI                   | Pending remote execution | workflow contains all required gates and ephemeral services                                                          |
+| CI                   | Pass                     | GitHub Actions run 29470041712: quality and Gitleaks jobs green                                                       |
 
 ## Known limitations and accepted risks
 
@@ -135,4 +135,4 @@ The repository contains 122 source, configuration, documentation and normative i
 
 ## Next phase
 
-Phase 1 may begin only after the remote GitHub Actions run is green and this report is updated from “Pending remote execution” to the recorded run result. Phase 1 scope remains Identity and Organization foundations: authentication, organizations, memberships, teams, RBAC/ABAC and audit.
+The Phase 0 baseline is complete and validated by GitHub Actions run `29470041712`. Phase 1 scope remains Identity and Organization foundations: authentication, organizations, memberships, teams, RBAC/ABAC and audit.
