@@ -1,4 +1,9 @@
-import { Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common'
+import {
+  Inject,
+  Injectable,
+  SetMetadata,
+  UnauthorizedException,
+} from '@nestjs/common'
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { AuthPrincipal } from './phase1.service.js'
@@ -17,7 +22,9 @@ export interface AuthenticatedRequest {
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
   constructor(
+    @Inject(Reflector)
     private readonly reflector: Reflector,
+    @Inject(Phase1Service)
     private readonly phase1: Phase1Service,
   ) {}
 

@@ -5,6 +5,7 @@ import {
   Get,
   Headers,
   HttpCode,
+  Inject,
   Param,
   Patch,
   Post,
@@ -42,7 +43,7 @@ interface CookieReply {
 @ApiBearerAuth()
 @Controller('v1')
 export class Phase1Controller {
-  constructor(private readonly phase1: Phase1Service) {}
+  constructor(@Inject(Phase1Service) private readonly phase1: Phase1Service) {}
 
   @Public()
   @Post('auth/register')
