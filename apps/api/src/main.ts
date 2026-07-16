@@ -14,6 +14,8 @@ import { AppModule } from './app.module.js'
 import { Phase1ExceptionFilter } from './phase1/phase1-exception.filter.js'
 
 async function bootstrap(): Promise<void> {
+  if (process.env.CI)
+    process.stderr.write('[api-bootstrap] creating Nest application\n')
   const environment = parseServiceEnvironment(process.env)
   const logger = createLogger({ level: environment.LOG_LEVEL, service: 'api' })
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -21,6 +23,8 @@ async function bootstrap(): Promise<void> {
     new FastifyAdapter(),
     { logger: false },
   )
+  if (process.env.CI)
+    process.stderr.write('[api-bootstrap] Nest application created\n')
   app.enableShutdownHooks()
   await app.register(cookie)
   await app.register(helmet, {
@@ -52,6 +56,7 @@ async function bootstrap(): Promise<void> {
   )
   const port = parsePort(process.env.API_PORT, 3001)
   await app.listen(port, '0.0.0.0')
+  if (process.env.CI) process.stderr.write('[api-bootstrap] listening\n')
   logger.info({ port }, 'api started')
 }
 

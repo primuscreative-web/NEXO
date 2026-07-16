@@ -88,6 +88,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   #tokens: JwtAccessTokenService | null = null
 
   async onModuleInit(): Promise<void> {
+    if (process.env.CI) process.stderr.write('[phase1] initializing adapters\n')
     this.#databaseUrl = process.env.DATABASE_URL ?? null
 
     let privateKeyPem = process.env.AUTH_JWT_PRIVATE_KEY?.replaceAll(
@@ -112,6 +113,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       audience: process.env.AUTH_JWT_AUDIENCE ?? 'nexo-api',
       expiresInSeconds: 900,
     })
+    if (process.env.CI) process.stderr.write('[phase1] adapters initialized\n')
   }
 
   async onModuleDestroy(): Promise<void> {
