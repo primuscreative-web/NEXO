@@ -1,6 +1,6 @@
 # NEXO
 
-Enterprise SaaS foundation for omnichannel operations, CRM, automation, voice, and AI. Phase 0 contains technical infrastructure only; no business capability is implemented.
+Enterprise SaaS platform foundation for omnichannel operations, CRM, automation, voice, and AI. Phase 1 adds owned identity, organizations, memberships, teams, authorization and append-only audit.
 
 ## Requirements
 
@@ -24,6 +24,8 @@ pnpm dev
 ```
 
 The liveness endpoints work without external services. To use API readiness or persistence, configure development-only Supabase/Neon and Upstash credentials in `.env`. Apply migrations only to that isolated database with `pnpm prisma:migrate`.
+
+The Phase 1 API is versioned under `/v1`; its OpenAPI UI is available at `http://localhost:3001/openapi`. Registration requires email verification. In tests the replaceable email adapter returns tokens to the harness; production never returns them in API responses.
 
 | Surface                | URL                                |
 | ---------------------- | ---------------------------------- |
@@ -60,15 +62,20 @@ apps/
 packages/
   config/            validated environment configuration
   cache/             replaceable cache health port and Redis adapter
-  database/          Prisma, migrations, and PostgreSQL technical access
+  database/          Prisma, migrations, PostgreSQL access and tenant transactions
   events/            transport-agnostic Event Bus contract
   observability/     structured logging and tracing correlation
   shared/            minimal framework-free primitives
   storage/           replaceable object-storage port and test adapter
   testing/           shared test constants and future harnesses
+  auth/              password, opaque-token and signed-token infrastructure adapters
+  contexts/identity/ identity rules and session rotation invariants
+  contexts/organization/ tenant, membership and authorization policies
+  contexts/notification/ replaceable email delivery contract
+  contexts/platform/ audit and integration-event primitives
 ```
 
-Bounded contexts will be created under `packages/contexts/<context>` only when their approved phase starts. Applications may import public context APIs; applications never import other applications.
+Applications may import only public context APIs; applications never import another application or a context's private persistence implementation. Phase 1 operational guides are under `docs/runbooks/`.
 
 Normative architecture: [NEXO Foundation Architecture v2.1](./NEXO_Foundation_Architecture_v2.1.md).
 
