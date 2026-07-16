@@ -1,0 +1,11 @@
+node_modules
+.next
+apps/web/next-env.d.ts
+dist
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+*.docx
+*.zip
+packages/database/src/generated

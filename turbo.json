@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", ".env.*", "tsconfig.base.json"],
+  "globalEnv": ["NODE_ENV", "LOG_LEVEL", "OTEL_SERVICE_NAME"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "clean": { "cache": false },
+    "dev": { "cache": false, "persistent": true },
+    "lint": { "dependsOn": ["^build"], "outputs": [] },
+    "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+    "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+    "test:unit": { "dependsOn": ["^build"], "outputs": [] },
+    "typecheck": { "dependsOn": ["^build"], "outputs": [] }
+  }
+}

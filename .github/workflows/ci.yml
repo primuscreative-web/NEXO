@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_DB: nexo
+          POSTGRES_USER: nexo
+          POSTGRES_PASSWORD: nexo_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U nexo -d nexo"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      redis:
+        image: redis:8.2.2-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      CI: true
+      NODE_ENV: test
+      LOG_LEVEL: silent
+      DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      REDIS_URL: redis://localhost:6379
+      TEST_DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      TEST_REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma:validate
+      - run: pnpm prisma:generate
+      - run: pnpm prisma:migrate
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+      - run: pnpm test:integration
+      - run: pnpm test:coverage
+      - run: pnpm build
+      - run: pnpm test:e2e
+      - run: pnpm security:audit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-evidence
+          path: |
+            coverage
+            **/coverage
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2

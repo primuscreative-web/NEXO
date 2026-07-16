@@ -1,0 +1,160 @@
+name: nexo
+
+# Optional future reproducibility profile. Local development and required gates do not depend on Compose.
+
+x-app: &app
+  restart: unless-stopped
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  environment: &app-environment
+    NODE_ENV: production
+    LOG_LEVEL: info
+    DATABASE_URL: postgresql://nexo:nexo_local_only@postgres:5432/nexo?schema=public
+    REDIS_URL: redis://redis:6379
+  networks: [nexo]
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: nexo
+      POSTGRES_USER: nexo
+      POSTGRES_PASSWORD: nexo_local_only
+    ports: ['5432:5432']
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexo -d nexo']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [nexo]
+
+  redis:
+    image: redis:8.2.2-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    ports: ['6379:6379']
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [nexo]
+
+  web:
+    <<: *app
+    build:
+      {
+        context: .,
+        dockerfile: infrastructure/docker/Dockerfile,
+        args: { APP_NAME: '@nexo/web' },
+      }
+    environment: { <<: *app-environment, APP_NAME: '@nexo/web' }
+    ports: ['3000:3000']
+    healthcheck:
+      {
+        test:
+          [
+            'CMD',
+            'node',
+            '-e',
+            "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)})",
+          ],
+        interval: 10s,
+        timeout: 5s,
+        retries: 12,
+      }
+
+  api:
+    <<: *app
+    build:
+      {
+        context: .,
+        dockerfile: infrastructure/docker/Dockerfile,
+        args: { APP_NAME: '@nexo/api' },
+      }
+    environment:
+      { <<: *app-environment, APP_NAME: '@nexo/api', API_PORT: '3001' }
+    ports: ['3001:3001']
+    healthcheck:
+      {
+        test:
+          [
+            'CMD',
+            'node',
+            '-e',
+            "fetch('http://localhost:3001/health/live').then(r=>{if(!r.ok)process.exit(1)})",
+          ],
+        interval: 10s,
+        timeout: 5s,
+        retries: 12,
+      }
+
+  worker:
+    <<: *app
+    build:
+      {
+        context: .,
+        dockerfile: infrastructure/docker/Dockerfile,
+        args: { APP_NAME: '@nexo/worker' },
+      }
+    environment:
+      { <<: *app-environment, APP_NAME: '@nexo/worker', WORKER_PORT: '3002' }
+    ports: ['3002:3002']
+    healthcheck:
+      {
+        test:
+          [
+            'CMD',
+            'node',
+            '-e',
+            "fetch('http://localhost:3002/health/live').then(r=>{if(!r.ok)process.exit(1)})",
+          ],
+        interval: 10s,
+        timeout: 5s,
+        retries: 12,
+      }
+
+  webhook-gateway:
+    <<: *app
+    build:
+      {
+        context: .,
+        dockerfile: infrastructure/docker/Dockerfile,
+        args: { APP_NAME: '@nexo/webhook-gateway' },
+      }
+    environment:
+      {
+        <<: *app-environment,
+        APP_NAME: '@nexo/webhook-gateway',
+        WEBHOOK_GATEWAY_PORT: '3003',
+      }
+    ports: ['3003:3003']
+    healthcheck:
+      {
+        test:
+          [
+            'CMD',
+            'node',
+            '-e',
+            "fetch('http://localhost:3003/health/live').then(r=>{if(!r.ok)process.exit(1)})",
+          ],
+        interval: 10s,
+        timeout: 5s,
+        retries: 12,
+      }
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  nexo:

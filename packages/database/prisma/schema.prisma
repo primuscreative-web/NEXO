@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Domain models are intentionally absent in Phase 0.
+// Every future model must have a documented bounded-context owner.
+
