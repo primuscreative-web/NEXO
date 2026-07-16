@@ -129,4 +129,26 @@ describe.skipIf(!configured)('Phase 1 PostgreSQL isolation', () => {
       ]),
     ).rejects.toThrow(/append-only/u)
   })
+
+  it('allows an identity audit insert without exposing the row to anonymous reads', async () => {
+    const client = await pool!.connect()
+    const auditId = '20000000-0000-4000-8000-000000000002'
+    try {
+      await client.query('BEGIN')
+      await client.query('SET LOCAL ROLE nexo_phase1_test_app')
+      const inserted = await client.query(
+        `INSERT INTO "platform_audit_logs" ("id", "action", "resourceType", "correlationId") VALUES ($1, 'auth.login.failed', 'User', $1)`,
+        [auditId],
+      )
+      expect(inserted.rowCount).toBe(1)
+      const visible = await client.query<{ id: string }>(
+        `SELECT "id" FROM "platform_audit_logs" WHERE "id" = $1`,
+        [auditId],
+      )
+      expect(visible.rows).toEqual([])
+      await client.query('ROLLBACK')
+    } finally {
+      client.release()
+    }
+  })
 })

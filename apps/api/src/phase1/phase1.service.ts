@@ -1713,39 +1713,37 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
             })
           )?.id
         : undefined)
-    await transaction.auditLog.create({
-      data: {
-        action: input.action,
-        resourceType: input.resourceType,
-        correlationId: context.correlationId,
-        ...(input.organizationId
-          ? { organization: { connect: { id: input.organizationId } } }
-          : {}),
-        ...(input.actorUserId
-          ? { actorUser: { connect: { id: input.actorUserId } } }
-          : {}),
-        ...(actorMembershipId && input.organizationId
-          ? {
-              actorMembership: {
-                connect: {
-                  organizationId_id: {
-                    organizationId: input.organizationId,
-                    id: actorMembershipId,
-                  },
-                },
-              },
-            }
-          : {}),
-        ...(input.resourceId ? { resourceId: input.resourceId } : {}),
-        ...(context.ipAddress ? { ipAddress: context.ipAddress } : {}),
-        ...(context.userAgent ? { userAgent: context.userAgent } : {}),
-        ...(context.traceId ? { traceId: context.traceId } : {}),
-        ...(input.metadata
-          ? { metadata: sanitizeAuditMetadata(input.metadata) as object }
-          : {}),
-        ...(input.before ? { before: input.before as object } : {}),
-        ...(input.after ? { after: input.after as object } : {}),
-      },
+    // createMany intentionally avoids INSERT ... RETURNING. Identity audit rows are
+    // written before an authenticated user context exists, while RLS correctly
+    // prevents those rows from being read back by an anonymous request.
+    await transaction.auditLog.createMany({
+      data: [
+        {
+          action: input.action,
+          resourceType: input.resourceType,
+          correlationId: context.correlationId,
+          ...(input.organizationId
+            ? { organizationId: input.organizationId }
+            : {}),
+          ...(input.actorUserId ? { actorUserId: input.actorUserId } : {}),
+          ...(actorMembershipId && input.organizationId
+            ? { actorMembershipId }
+            : {}),
+          ...(input.resourceId ? { resourceId: input.resourceId } : {}),
+          ...(context.ipAddress ? { ipAddress: context.ipAddress } : {}),
+          ...(context.userAgent ? { userAgent: context.userAgent } : {}),
+          ...(context.traceId ? { traceId: context.traceId } : {}),
+          ...(input.metadata
+            ? { metadata: sanitizeAuditMetadata(input.metadata) as object }
+            : {}),
+          ...(input.before
+            ? { before: sanitizeAuditMetadata(input.before) as object }
+            : {}),
+          ...(input.after
+            ? { after: sanitizeAuditMetadata(input.after) as object }
+            : {}),
+        },
+      ],
     })
   }
 
