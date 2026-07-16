@@ -100,23 +100,23 @@ Production credentials are prohibited in local development and tests. `.env.exam
 
 ## Validation evidence
 
-| Gate                 | Result                   | Evidence                                                                                                             |
-| -------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Reproducible install | Pass                     | pnpm 11.13.1, frozen lockfile, build allowlist                                                                       |
-| Formatter            | Pass                     | all tracked source/document files match Prettier                                                                     |
-| Lint                 | Pass                     | 17 dependency-aware tasks across 12 packages                                                                         |
-| Typecheck            | Pass                     | 17 dependency-aware tasks, TypeScript strict                                                                         |
-| Unit tests           | Pass                     | 13 assertions; no failures                                                                                           |
-| Integration local    | Safe skip                | 2 protocol assertions require isolated `TEST_*` resources                                                            |
-| Integration CI       | Configured               | ephemeral PostgreSQL 17.6 and Redis 8.2 services                                                                     |
-| Coverage             | Pass                     | reports generated per package; tested primitives reach 85–100%, provider/composition code is integration/E2E covered |
-| Build                | Pass                     | all 12 packages/apps, including optimized Next.js output                                                             |
-| E2E smoke            | Pass                     | Web, API, Worker and Webhook Gateway: 4/4                                                                            |
-| Health checks        | Pass                     | four liveness endpoints; API readiness fails closed without providers                                                |
-| Security audit       | Pass                     | no known vulnerabilities in final lockfile                                                                           |
-| Secrets              | Pass                     | placeholder-only example; secret files and generated artifacts ignored                                               |
-| Docker               | Optional                 | artifacts retained; excluded from required gates by ADR-012                                                          |
-| CI                   | Pass                     | GitHub Actions run 29470041712: quality and Gitleaks jobs green                                                       |
+| Gate                 | Result     | Evidence                                                                                                             |
+| -------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| Reproducible install | Pass       | pnpm 11.13.1, frozen lockfile, build allowlist                                                                       |
+| Formatter            | Pass       | all tracked source/document files match Prettier                                                                     |
+| Lint                 | Pass       | 17 dependency-aware tasks across 12 packages                                                                         |
+| Typecheck            | Pass       | 17 dependency-aware tasks, TypeScript strict                                                                         |
+| Unit tests           | Pass       | 13 assertions; no failures                                                                                           |
+| Integration local    | Safe skip  | 2 protocol assertions require isolated `TEST_*` resources                                                            |
+| Integration CI       | Configured | ephemeral PostgreSQL 17.6 and Redis 8.2 services                                                                     |
+| Coverage             | Pass       | reports generated per package; tested primitives reach 85–100%, provider/composition code is integration/E2E covered |
+| Build                | Pass       | all 12 packages/apps, including optimized Next.js output                                                             |
+| E2E smoke            | Pass       | Web, API, Worker and Webhook Gateway: 4/4                                                                            |
+| Health checks        | Pass       | four liveness endpoints; API readiness fails closed without providers                                                |
+| Security audit       | Pass       | no known vulnerabilities in final lockfile                                                                           |
+| Secrets              | Pass       | placeholder-only example; secret files and generated artifacts ignored                                               |
+| Docker               | Optional   | artifacts retained; excluded from required gates by ADR-012                                                          |
+| CI                   | Pass       | GitHub Actions run 29470041712: quality and Gitleaks jobs green                                                      |
 
 ## Known limitations and accepted risks
 
