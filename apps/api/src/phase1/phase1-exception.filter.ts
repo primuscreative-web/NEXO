@@ -67,6 +67,13 @@ export class Phase1ExceptionFilter implements ExceptionFilter {
       })
       return
     }
+    if (process.env.CI) {
+      const detail =
+        exception instanceof Error
+          ? (exception.stack ?? `${exception.name}: ${exception.message}`)
+          : 'Non-Error exception'
+      process.stderr.write(`[api-exception] ${detail}\n`)
+    }
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
       error: {
         code: 'internal_error',
