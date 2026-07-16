@@ -347,9 +347,14 @@ test.describe('Phase 1 critical journey', () => {
     await expect(
       page.getByRole('heading', { name: 'Suas organizações' }),
     ).toBeVisible()
-    await page.getByLabel('Nome').fill(`Organização visual ${suffix}`)
+    const organizationName = `Organização visual ${suffix}`
+    await page.getByLabel('Nome').fill(organizationName)
     await page.getByRole('button', { name: 'Criar e selecionar' }).click()
     await expect(page).toHaveURL(/\/app/u)
+    await expect(
+      page.getByRole('heading', { name: organizationName }),
+    ).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
     await page.getByRole('link', { name: 'Pessoas e convites' }).click()
     await expect(
       page.getByRole('heading', { name: 'Pessoas e convites' }),

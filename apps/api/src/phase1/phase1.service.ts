@@ -677,7 +677,10 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     context: RequestContext,
   ) {
     const organizationId = randomUUID()
-    const slug = normalizeSlug(input.slug ?? input.name)
+    const requestedSlug = input.slug?.trim()
+    const slug = normalizeSlug(
+      requestedSlug?.length ? requestedSlug : input.name,
+    )
     return withTenant(
       this.#db(),
       { userId: principal.userId, organizationId },

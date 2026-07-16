@@ -38,12 +38,14 @@ export function OrganizationDashboard() {
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
+    const slugEntry = data.get('slug')
+    const slug = typeof slugEntry === 'string' ? slugEntry.trim() : ''
     try {
       const organization = await apiFetch<{ id: string }>('/v1/organizations', {
         method: 'POST',
         body: JSON.stringify({
           name: data.get('name'),
-          slug: data.get('slug') ?? undefined,
+          ...(slug ? { slug } : {}),
         }),
       })
       await apiFetch(`/v1/organizations/${organization.id}/select`, {
