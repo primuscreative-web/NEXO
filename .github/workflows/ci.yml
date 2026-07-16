@@ -54,6 +54,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
       - run: pnpm prisma:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate

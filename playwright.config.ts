@@ -9,7 +9,10 @@ const env = {
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  // These journeys intentionally mutate sessions, rate-limit buckets and tenant
+  // state. Retrying an entire serial journey can hide the original failure and
+  // create a different 429/duplicate-state error on the retry.
+  retries: 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   use: { trace: 'retain-on-failure' },
   webServer: [
