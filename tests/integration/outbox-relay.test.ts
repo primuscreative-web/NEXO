@@ -40,8 +40,9 @@ describe.skipIf(!configured)('transactional Outbox relay store', () => {
       first.claim(1, 30_000),
       second.claim(1, 30_000),
     ])
-    expect(claims.flat()).toHaveLength(1)
-    expect(claims.flat()[0]?.id).toBe(id)
+    const targetClaims = claims.flat().filter((event) => event.id === id)
+    expect(targetClaims).toHaveLength(1)
+    expect(targetClaims[0]?.id).toBe(id)
     expect(
       await database!.outboxEvent.findUnique({ where: { id } }),
     ).toMatchObject({ status: 'PUBLISHING', attempts: 1, publishedAt: null })

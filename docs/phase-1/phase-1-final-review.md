@@ -26,12 +26,14 @@ The final verdict is issued only after the corrected commit passes installation,
 
 ## Findings closed during the final validation
 
-The independent validation exposed and closed four additional defects before approval:
+The independent validation exposed and closed four additional product defects before approval:
 
 1. identity audit insertion used `INSERT ... RETURNING`, which correctly failed the audit read policy before an authenticated user context existed; append-only writes now use a non-returning insert and retain restrictive RLS reads;
 2. the CI runner did not provision the Playwright Chromium binary, and serial stateful journeys were retried into secondary rate-limit failures; the browser is now explicitly installed and stateful E2E runs without misleading whole-journey retries;
 3. organization onboarding submitted an empty optional slug and later dereferenced a React form event after asynchronous work; blank slugs are omitted/normalized defensively and the form reference is retained safely;
 4. the web API client declared JSON for bodyless mutations, causing Fastify to reject organization selection; content type is now attached only when a body exists, with unit regression coverage.
+
+The final documentation run also exposed a test-isolation defect: the Outbox concurrency regression assumed the durable ledger was empty after E2E. It now proves the actual invariant—that the target event is leased at most once—even when unrelated pending events legitimately coexist.
 
 No published migration was edited. The corrective migrations added by the review are `20260716213000_audit_identity_insert_policy` and `20260716214500_outbox_idempotency_contract`.
 

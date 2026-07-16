@@ -23,7 +23,7 @@ Argon2id, email confirmation, non-enumerating recovery, lockout, short access to
 - Branch: `codex/phase-1-identity-organization`.
 - Pull request: <https://github.com/primuscreative-web/NEXO/pull/9>.
 - Green workflow: <https://github.com/primuscreative-web/NEXO/actions/runs/29536164420>.
-- Validated implementation HEAD: `a72e2b2b43882370e378f339e77596d90749f413` (the closure commit changes documentation only).
+- Validated production implementation HEAD: `a72e2b2b43882370e378f339e77596d90749f413`; subsequent closure changes are documentation and test-harness hardening only.
 - Scope relative to `d1256c3`: 96 files, 8,395 insertions and 134 deletions before this report closure.
 - `pnpm install --frozen-lockfile`: passed.
 - Prisma schema validation, generation and immutable migration deployment: passed against PostgreSQL 17.6 ephemeral CI service.
@@ -73,6 +73,7 @@ Phase 2 expands the design system, reusable interaction primitives, full accessi
 - CI explicitly provisions Chromium and stateful serial journeys no longer use whole-journey retries that can hide the original failure behind rate limiting;
 - optional organization slugs and asynchronous onboarding form lifecycle are handled safely;
 - bodyless API mutations no longer declare a JSON content type, with unit regression coverage.
+- the Outbox concurrency integration test no longer assumes an empty ledger after E2E and instead proves that its target event is leased only once while unrelated pending events may coexist.
 
 No published migration was edited. The independent review added migrations `20260716213000_audit_identity_insert_policy` and `20260716214500_outbox_idempotency_contract`.
 
