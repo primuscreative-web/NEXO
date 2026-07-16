@@ -1,6 +1,6 @@
 # NEXO Phase 1 report
 
-Status: under final independent review on 2026-07-16. The original branch CI was green, but the review identified mandatory Phase 1 corrections. No merge into `main` has been performed.
+Status: approved for merge with accepted risks on 2026-07-16 after independent review and correction of all blocking Phase 1 findings. No merge into `main` had been performed when this evidence was recorded.
 
 ## Executive summary
 
@@ -22,15 +22,15 @@ Argon2id, email confirmation, non-enumerating recovery, lockout, short access to
 
 - Branch: `codex/phase-1-identity-organization`.
 - Pull request: <https://github.com/primuscreative-web/NEXO/pull/9>.
-- Green workflow: <https://github.com/primuscreative-web/NEXO/actions/runs/29502448941>.
-- Validated implementation HEAD: `1aa2018df8e2c0255ceb21d273c9059eeb7f0fde` (the closure commit changes documentation only).
-- Scope relative to `d1256c3`: 82 files, 6,596 insertions and 132 deletions before this report closure.
+- Green workflow: <https://github.com/primuscreative-web/NEXO/actions/runs/29536164420>.
+- Validated implementation HEAD: `a72e2b2b43882370e378f339e77596d90749f413` (the closure commit changes documentation only).
+- Scope relative to `d1256c3`: 96 files, 8,395 insertions and 134 deletions before this report closure.
 - `pnpm install --frozen-lockfile`: passed.
 - Prisma schema validation, generation and immutable migration deployment: passed against PostgreSQL 17.6 ephemeral CI service.
 - Build, Prettier, ESLint and strict TypeScript: passed.
 - Unit tests: passed across every workspace package.
 - Integration tests: passed against real ephemeral PostgreSQL and Redis services, including migration, forced RLS, cross-tenant writes and append-only audit.
-- E2E: passed, covering service health and the Phase 1 identity/organization journey through API and persistence.
+- E2E: passed in real Chromium, covering frontend, API and persistence across authentication/session security, organization onboarding, tenant selection and cross-tenant denial.
 - Coverage: passed. Coverage is emitted per package rather than as a misleading monorepo average; critical context reports include up to 96% statements/75% branches, and the complete HTML/LCOV evidence is attached to the workflow.
 - Dependency audit: passed with no known high or critical vulnerabilities.
 - Gitleaks secret scan: passed.
@@ -69,5 +69,15 @@ Phase 2 expands the design system, reusable interaction primitives, full accessi
 - the worker now relays the transactional Outbox with PostgreSQL leases, BullMQ deduplication, retries, backoff and dead-event quarantine;
 - administrative web pages now perform organization updates, invitations, role/status changes, team management, session revocation and password changes;
 - table-driven RBAC, OpenAPI path parity, browser onboarding, cookie/logout/replay, cross-tenant team and Outbox concurrency regressions were added.
+- identity audit writes no longer depend on `INSERT ... RETURNING`, preserving restrictive read RLS before an authenticated user context exists;
+- CI explicitly provisions Chromium and stateful serial journeys no longer use whole-journey retries that can hide the original failure behind rate limiting;
+- optional organization slugs and asynchronous onboarding form lifecycle are handled safely;
+- bodyless API mutations no longer declare a JSON content type, with unit regression coverage.
 
-The definitive verdict, final commit, workflow and gate evidence will be recorded only after the corrected branch CI completes.
+No published migration was edited. The independent review added migrations `20260716213000_audit_identity_insert_policy` and `20260716214500_outbox_idempotency_contract`.
+
+## Final verdict
+
+### APPROVED FOR MERGE WITH ACCEPTED RISKS
+
+There are no known critical or high Phase 1 defects and no mandatory gate is failing on the validated implementation commit. The remaining risks are documented, bounded and do not invalidate the authentication, authorization, audit, event-delivery or multi-tenant security baseline. The resulting `main` workflow must pass before Phase 1 is declared formally closed.

@@ -23,3 +23,26 @@ Regression coverage includes the complete role/permission matrix, OpenAPI path p
 ## Merge rule
 
 The final verdict is issued only after the corrected commit passes installation, formatting, lint, typecheck, unit, integration, E2E, coverage, build, dependency audit, secret scan, migrations, restricted-role RLS, cross-tenant, RBAC/ABAC and Outbox gates in GitHub Actions. No Phase 2 work is included.
+
+## Findings closed during the final validation
+
+The independent validation exposed and closed four additional defects before approval:
+
+1. identity audit insertion used `INSERT ... RETURNING`, which correctly failed the audit read policy before an authenticated user context existed; append-only writes now use a non-returning insert and retain restrictive RLS reads;
+2. the CI runner did not provision the Playwright Chromium binary, and serial stateful journeys were retried into secondary rate-limit failures; the browser is now explicitly installed and stateful E2E runs without misleading whole-journey retries;
+3. organization onboarding submitted an empty optional slug and later dereferenced a React form event after asynchronous work; blank slugs are omitted/normalized defensively and the form reference is retained safely;
+4. the web API client declared JSON for bodyless mutations, causing Fastify to reject organization selection; content type is now attached only when a body exists, with unit regression coverage.
+
+No published migration was edited. The corrective migrations added by the review are `20260716213000_audit_identity_insert_policy` and `20260716214500_outbox_idempotency_contract`.
+
+## Final evidence and verdict
+
+- Validated implementation commit: `a72e2b2b43882370e378f339e77596d90749f413`.
+- GitHub Actions run: <https://github.com/primuscreative-web/NEXO/actions/runs/29536164420>.
+- `quality`: passed, including frozen install, Prisma validation/generation/migration deployment, restricted application role, build, real-browser E2E, formatting, lint, strict typecheck, unit tests, PostgreSQL/Redis integration tests, coverage and dependency audit.
+- `secrets`: passed with Gitleaks over full history.
+- PR remained mergeable and the branch contained no divergence from `main` at the validation point.
+
+## APPROVED FOR MERGE WITH ACCEPTED RISKS
+
+There are no known critical or high Phase 1 defects and no mandatory gate is failing. The residual risks listed above are accepted because they are bounded, documented and do not invalidate the Phase 1 security or tenancy baseline. The merge must still use the repository's squash policy and the resulting `main` workflow must pass before Phase 1 is declared closed.
