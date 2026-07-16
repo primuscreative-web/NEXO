@@ -27,9 +27,13 @@ async function bootstrap(): Promise<void> {
     process.stderr.write('[api-bootstrap] Nest application created\n')
   app.enableShutdownHooks()
   await app.register(cookie)
+  if (process.env.CI)
+    process.stderr.write('[api-bootstrap] cookies registered\n')
   await app.register(helmet, {
     contentSecurityPolicy: false,
   })
+  if (process.env.CI)
+    process.stderr.write('[api-bootstrap] security headers registered\n')
   app.enableCors({
     origin: (process.env.WEB_ORIGIN ?? 'http://localhost:3000').split(','),
     credentials: true,
@@ -54,6 +58,8 @@ async function bootstrap(): Promise<void> {
     app,
     SwaggerModule.createDocument(app, openApi),
   )
+  if (process.env.CI)
+    process.stderr.write('[api-bootstrap] OpenAPI registered\n')
   const port = parsePort(process.env.API_PORT, 3001)
   await app.listen(port, '0.0.0.0')
   if (process.env.CI) process.stderr.write('[api-bootstrap] listening\n')
