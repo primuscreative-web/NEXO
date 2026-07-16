@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -37,9 +38,9 @@ jobs:
       CI: true
       NODE_ENV: test
       LOG_LEVEL: silent
-      DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo
       REDIS_URL: redis://localhost:6379
-      TEST_DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo?schema=public
+      TEST_DATABASE_URL: postgresql://nexo:nexo_ci_only@localhost:5432/nexo
       TEST_REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
