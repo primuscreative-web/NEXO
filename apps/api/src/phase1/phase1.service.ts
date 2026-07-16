@@ -133,7 +133,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       select: { id: true, userId: true, activeOrganizationId: true },
     })
     if (!session) throw new Phase1Error('unauthorized', 401, 'Unauthorized')
-    if (claims.org !== session.activeOrganizationId)
+    if ((claims.org ?? null) !== session.activeOrganizationId)
       throw new Phase1Error('stale_access_token', 401, 'Unauthorized')
     return {
       userId: session.userId,
