@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test'
 const env = {
   ...process.env,
   NODE_ENV: 'test',
-  LOG_LEVEL: 'silent',
+  LOG_LEVEL: process.env.CI ? 'info' : 'silent',
 }
 
 export default defineConfig({
