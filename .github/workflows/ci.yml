@@ -73,7 +73,7 @@ jobs:
       - name: Start and verify API for E2E
         shell: bash
         run: |
-          node apps/api/dist/main.js > api-e2e.log 2>&1 &
+          pnpm exec tsx apps/api/src/main.ts > api-e2e.log 2>&1 &
           for attempt in {1..60}; do
             if curl --fail --silent http://localhost:3001/health/live; then
               exit 0
