@@ -22,7 +22,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @nexo/api start',
       port: 3001,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
       env,
     },
     {

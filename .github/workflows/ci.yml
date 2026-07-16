@@ -57,6 +57,18 @@ jobs:
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
       - run: pnpm build
+      - name: Start and verify API for E2E
+        shell: bash
+        run: |
+          pnpm --filter @nexo/api start > api-e2e.log 2>&1 &
+          for attempt in {1..20}; do
+            if curl --fail --silent http://localhost:3001/health/live; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat api-e2e.log
+          exit 1
       - run: pnpm test:e2e
       - run: pnpm format:check
       - run: pnpm lint
@@ -74,6 +86,7 @@ jobs:
             **/coverage
             playwright-report
             test-results
+            api-e2e.log
           if-no-files-found: ignore
 
   secrets:
