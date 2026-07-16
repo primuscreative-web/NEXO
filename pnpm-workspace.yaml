@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/contexts/*
 
 overrides:
   '@hono/node-server': 1.19.13
@@ -8,7 +9,9 @@ overrides:
 
 allowBuilds:
   '@prisma/engines': true
+  '@scarf/scarf': false
   '@swc/core': true
+  argon2: true
   esbuild: true
   prisma: true
   sharp: true
@@ -27,3 +30,6 @@ catalog:
   typescript: 5.9.3
   vitest: 3.2.6
   zod: 4.1.12
+
+minimumReleaseAgeExclude:
+  - '@fastify/cookie@11.1.2'
