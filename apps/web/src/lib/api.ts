@@ -18,7 +18,7 @@ export async function apiFetch<T>(
     ? csrfToken()
     : undefined
   const headers = new Headers(init.headers)
-  if (!headers.has('content-type'))
+  if (init.body !== undefined && !headers.has('content-type'))
     headers.set('content-type', 'application/json')
   if (csrf) headers.set('x-csrf-token', decodeURIComponent(csrf))
   const response = await fetch(`${apiUrl}${path}`, {
