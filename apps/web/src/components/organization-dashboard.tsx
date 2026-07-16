@@ -37,7 +37,8 @@ export function OrganizationDashboard() {
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     const slugEntry = data.get('slug')
     const slug = typeof slugEntry === 'string' ? slugEntry.trim() : ''
     try {
@@ -53,7 +54,7 @@ export function OrganizationDashboard() {
       })
       await reload()
       router.refresh()
-      event.currentTarget.reset()
+      form.reset()
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : 'Falha ao criar organização.',
