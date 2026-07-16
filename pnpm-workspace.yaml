@@ -22,14 +22,14 @@ catalog:
   '@nestjs/core': 11.1.28
   '@nestjs/platform-fastify': 11.1.28
   '@opentelemetry/api': 1.9.0
-  '@types/node': 24.9.1
+  '@types/node': 26.1.1
   pino: 10.1.0
   reflect-metadata: 0.2.2
   rxjs: 7.8.2
   tsx: 4.20.6
   tsup: 8.5.0
-  typescript: 5.9.3
-  vitest: 3.2.6
+  typescript: 7.0.2
+  vitest: 4.1.10
   zod: 4.1.12
 
 minimumReleaseAgeExclude:
