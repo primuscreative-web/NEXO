@@ -1,6 +1,6 @@
 # NEXO Phase 1 report
 
-Status: validation in progress. This report becomes final only after the published branch CI is green.
+Status: completed on 2026-07-16. The implementation baseline was validated by the published branch CI and is ready for final review; no merge into `main` was performed.
 
 ## Executive summary
 
@@ -20,7 +20,38 @@ Argon2id, email confirmation, non-enumerating recovery, lockout, short access to
 
 ## Validation evidence
 
-Final command results, coverage, migration status, commit SHAs, remote HEAD and workflow URL will be recorded after CI completion. Local provider-dependent tests explicitly skip when disposable `TEST_DATABASE_URL` and `TEST_REDIS_URL` are absent; they never fall back to development or production resources.
+- Branch: `codex/phase-1-identity-organization`.
+- Pull request: <https://github.com/primuscreative-web/NEXO/pull/9>.
+- Green workflow: <https://github.com/primuscreative-web/NEXO/actions/runs/29502448941>.
+- Validated implementation HEAD: `1aa2018df8e2c0255ceb21d273c9059eeb7f0fde` (the closure commit changes documentation only).
+- Scope relative to `d1256c3`: 82 files, 6,596 insertions and 132 deletions before this report closure.
+- `pnpm install --frozen-lockfile`: passed.
+- Prisma schema validation, generation and immutable migration deployment: passed against PostgreSQL 17.6 ephemeral CI service.
+- Build, Prettier, ESLint and strict TypeScript: passed.
+- Unit tests: passed across every workspace package.
+- Integration tests: passed against real ephemeral PostgreSQL and Redis services, including migration, forced RLS, cross-tenant writes and append-only audit.
+- E2E: passed, covering service health and the Phase 1 identity/organization journey through API and persistence.
+- Coverage: passed. Coverage is emitted per package rather than as a misleading monorepo average; critical context reports include up to 96% statements/75% branches, and the complete HTML/LCOV evidence is attached to the workflow.
+- Dependency audit: passed with no known high or critical vulnerabilities.
+- Gitleaks secret scan: passed.
+
+Local provider-dependent tests explicitly skip when disposable `TEST_DATABASE_URL` and `TEST_REDIS_URL` are absent; they never fall back to development or production resources. Docker Desktop was not used or required.
+
+## Delivered surface
+
+- Identity: registration, email verification, login/logout, password recovery/change, rotating refresh families, reuse detection, active session listing and revocation.
+- Organization: global users, N:N memberships, active organization selection, invitations, teams, system roles, granular permissions and last-owner protection.
+- Authorization: reusable deny-by-default RBAC plus focused ABAC for tenant, status, ownership and session constraints.
+- Security and data: tenant-aware constraints, forced RLS defense in depth, IDOR masking, rate limits, CSRF, safe cookies, append-only audit and sanitized metadata.
+- Events: versioned transactional Outbox records with correlation, causation, tenant metadata and explicit idempotency key.
+- Web: Brazilian Portuguese authentication/onboarding and administration surfaces, responsive semantic light/dark tokens, protected routes and accessible states.
+
+## Accepted residual risks and external configuration
+
+- Production requires a restricted non-superuser PostgreSQL runtime role; otherwise PostgreSQL `BYPASSRLS` can bypass the defense-in-depth policies.
+- Production requires dedicated Ed25519 signing keys and a production email delivery adapter. CI keys are generated per run and never reused.
+- MFA, passkeys, social login and a complete design system remain deliberately outside Phase 1.
+- OpenAPI remains enabled by default; reflective document generation is disabled only in CI E2E runtime because build and contract validation are separate gates.
 
 ## Phase 2 boundary
 
