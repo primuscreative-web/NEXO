@@ -66,8 +66,8 @@ jobs:
           export AUTH_JWT_PRIVATE_KEY="$(cat /tmp/nexo-e2e-private.pem)"
           export AUTH_JWT_PUBLIC_KEY="$(cat /tmp/nexo-e2e-public.pem)"
           pnpm --filter @nexo/api exec tsx src/main.ts > api-e2e.log 2>&1 &
-          for attempt in {1..120}; do
-            if curl --fail --silent http://localhost:3001/health/live; then
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3001/health/live; then
               exit 0
             fi
             sleep 1
