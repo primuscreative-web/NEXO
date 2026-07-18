@@ -3,6 +3,7 @@
 **Status:** Local quality gates approved; final GitHub CI evidence pending  
 **Branch:** `codex/phase-2-design-system-shell`  
 **Baseline:** `eef0f4e119d2c759e499d5510491d3ec1bbaa751`
+**Pull request:** <https://github.com/primuscreative-web/NEXO/pull/11> (draft)
 
 ## Executive summary
 
@@ -67,4 +68,4 @@ Phase 2 replaces the provisional Phase 1 presentation layer with the Nexus Preci
 | Prisma schema        | Passed          | schema validation succeeded; no Phase 2 migration added                                                           |
 | Secret scan          | Passed locally  | tracked/untracked candidate pattern scan found no credential material; Gitleaks remains the authoritative CI gate |
 
-The pull request and final workflow URL are recorded after publication. The branch must remain unmerged for product review.
+The authoritative final workflow URL and branch HEAD are recorded after GitHub Actions completes. The branch remains unmerged for product review.
