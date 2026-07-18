@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 
 const configured = Boolean(process.env.TEST_DATABASE_URL)
-const api = 'http://127.0.0.1:3001'
+const api = 'http://localhost:3001'
 
 async function csrf(request: APIRequestContext): Promise<string> {
   const state = await request.storageState()
@@ -45,7 +45,7 @@ test.describe('Phase 2 authenticated experience', () => {
       ).status(),
     ).toBe(204)
 
-    await page.goto('http://127.0.0.1:3000/login')
+    await page.goto('http://localhost:3000/login')
     await page.getByLabel('E-mail').fill(email)
     await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Entrar' }).click()
@@ -126,7 +126,7 @@ test.describe('Phase 2 authenticated experience', () => {
     ).json()) as { role: { permissions: string[] } }[]
     expect(organizationAccess[0]?.role.permissions).toContain('team.read')
 
-    await page.goto('http://127.0.0.1:3000/dashboard')
+    await page.goto('http://localhost:3000/dashboard')
     await expect(
       page.getByText(`Alpha ${suffix}`, { exact: true }),
     ).toBeVisible()
