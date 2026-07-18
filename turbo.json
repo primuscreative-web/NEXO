@@ -11,6 +11,7 @@
     "dev": { "cache": false, "persistent": true },
     "lint": { "dependsOn": ["^build"], "outputs": [] },
     "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+    "test:components": { "dependsOn": ["^build"], "outputs": [] },
     "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
     "test:unit": { "dependsOn": ["^build"], "outputs": [] },
     "typecheck": { "dependsOn": ["^build"], "outputs": [] }

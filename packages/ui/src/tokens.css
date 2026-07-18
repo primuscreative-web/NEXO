@@ -1,0 +1,163 @@
+@layer nexo.tokens {
+  :root {
+    color-scheme: light;
+
+    /* Primitive palette: never consume these directly in components. */
+    --nexo-indigo-50: #eef2ff;
+    --nexo-indigo-100: #e0e7ff;
+    --nexo-indigo-400: #818cf8;
+    --nexo-indigo-500: #6366f1;
+    --nexo-indigo-600: #4f46e5;
+    --nexo-violet-400: #a855f7;
+    --nexo-slate-0: #ffffff;
+    --nexo-slate-25: #fafbff;
+    --nexo-slate-50: #f6f7fb;
+    --nexo-slate-100: #eceef5;
+    --nexo-slate-200: #d9dce8;
+    --nexo-slate-500: #6c7080;
+    --nexo-slate-700: #383b49;
+    --nexo-slate-900: #171821;
+    --nexo-slate-950: #0d0d15;
+    --nexo-green-500: #10b981;
+    --nexo-amber-500: #f59e0b;
+    --nexo-red-500: #e11d48;
+    --nexo-blue-500: #2684ff;
+
+    /* Semantic color contract. */
+    --nexo-background: var(--nexo-slate-50);
+    --nexo-surface: var(--nexo-slate-0);
+    --nexo-surface-subtle: var(--nexo-slate-25);
+    --nexo-surface-elevated: var(--nexo-slate-0);
+    --nexo-surface-strong: var(--nexo-slate-100);
+    --nexo-foreground: var(--nexo-slate-900);
+    --nexo-foreground-muted: var(--nexo-slate-500);
+    --nexo-border: color-mix(in srgb, var(--nexo-slate-200) 85%, transparent);
+    --nexo-border-strong: var(--nexo-slate-200);
+    --nexo-primary: var(--nexo-indigo-600);
+    --nexo-primary-hover: #4338ca;
+    --nexo-primary-foreground: #ffffff;
+    --nexo-secondary: #ede9fe;
+    --nexo-secondary-foreground: #4c1d95;
+    --nexo-accent: var(--nexo-violet-400);
+    --nexo-success: #047857;
+    --nexo-success-surface: #ecfdf5;
+    --nexo-warning: #a16207;
+    --nexo-warning-surface: #fffbeb;
+    --nexo-danger: #be123c;
+    --nexo-danger-surface: #fff1f2;
+    --nexo-info: #1d4ed8;
+    --nexo-info-surface: #eff6ff;
+    --nexo-ai: #7c3aed;
+    --nexo-ai-surface: #f5f3ff;
+    --nexo-focus: #4f46e5;
+    --nexo-overlay: rgb(13 13 21 / 70%);
+
+    /* Type. */
+    --nexo-font-heading: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+    --nexo-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+    --nexo-font-code: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --nexo-text-2xs: 0.6875rem;
+    --nexo-text-xs: 0.75rem;
+    --nexo-text-sm: 0.875rem;
+    --nexo-text-md: 1rem;
+    --nexo-text-lg: 1.125rem;
+    --nexo-text-xl: 1.25rem;
+    --nexo-text-2xl: 1.5rem;
+    --nexo-text-3xl: 2rem;
+    --nexo-text-display: 3rem;
+
+    /* Spacing follows a 4px base grid. */
+    --nexo-space-0: 0;
+    --nexo-space-1: 0.25rem;
+    --nexo-space-2: 0.5rem;
+    --nexo-space-3: 0.75rem;
+    --nexo-space-4: 1rem;
+    --nexo-space-5: 1.25rem;
+    --nexo-space-6: 1.5rem;
+    --nexo-space-8: 2rem;
+    --nexo-space-10: 2.5rem;
+    --nexo-space-12: 3rem;
+    --nexo-space-16: 4rem;
+
+    --nexo-radius-sm: 0.375rem;
+    --nexo-radius-md: 0.625rem;
+    --nexo-radius-lg: 0.875rem;
+    --nexo-radius-xl: 1.125rem;
+    --nexo-radius-full: 9999px;
+    --nexo-shadow-sm: 0 1px 2px rgb(15 23 42 / 6%);
+    --nexo-shadow-md: 0 12px 32px rgb(15 23 42 / 10%);
+    --nexo-shadow-lg: 0 24px 64px rgb(15 23 42 / 18%);
+    --nexo-z-base: 0;
+    --nexo-z-sticky: 20;
+    --nexo-z-overlay: 50;
+    --nexo-z-toast: 80;
+    --nexo-duration-fast: 120ms;
+    --nexo-duration-normal: 180ms;
+    --nexo-duration-slow: 260ms;
+    --nexo-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --nexo-container: 90rem;
+    --nexo-sidebar-expanded: 16.5rem;
+    --nexo-sidebar-collapsed: 4.75rem;
+    --nexo-header-height: 4rem;
+
+    /* Component aliases. */
+    --nexo-control-height-sm: 2rem;
+    --nexo-control-height-md: 2.5rem;
+    --nexo-control-height-lg: 3rem;
+    --nexo-control-background: var(--nexo-surface);
+    --nexo-control-border: var(--nexo-border-strong);
+    --nexo-control-invalid: var(--nexo-danger);
+    --nexo-card-background: var(--nexo-surface);
+    --nexo-card-border: var(--nexo-border);
+    --nexo-sidebar-background: #11121b;
+    --nexo-sidebar-foreground: #e4e1ed;
+    --nexo-sidebar-muted: #a8a6b5;
+    --nexo-sidebar-active: #c0c1ff;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --nexo-background: #13131b;
+    --nexo-surface: #1b1b23;
+    --nexo-surface-subtle: #17171f;
+    --nexo-surface-elevated: #24242d;
+    --nexo-surface-strong: #292932;
+    --nexo-foreground: #e4e1ed;
+    --nexo-foreground-muted: #a8a6b5;
+    --nexo-border: rgb(255 255 255 / 8%);
+    --nexo-border-strong: #3a3947;
+    --nexo-primary: #aeb0ff;
+    --nexo-primary-hover: #c0c1ff;
+    --nexo-primary-foreground: #17134f;
+    --nexo-secondary: #302a48;
+    --nexo-secondary-foreground: #e8dcff;
+    --nexo-accent: #b66cff;
+    --nexo-success: #34d399;
+    --nexo-success-surface: #0d2d25;
+    --nexo-warning: #fbbf24;
+    --nexo-warning-surface: #33280d;
+    --nexo-danger: #fb7185;
+    --nexo-danger-surface: #3a1420;
+    --nexo-info: #60a5fa;
+    --nexo-info-surface: #112b4f;
+    --nexo-ai: #c084fc;
+    --nexo-ai-surface: #2d1940;
+    --nexo-focus: #c0c1ff;
+    --nexo-overlay: rgb(2 6 23 / 78%);
+    --nexo-shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+    --nexo-shadow-md: 0 16px 40px rgb(0 0 0 / 34%);
+    --nexo-shadow-lg: 0 28px 72px rgb(0 0 0 / 50%);
+    --nexo-control-background: #17171f;
+    --nexo-control-border: #3a3947;
+    --nexo-card-background: color-mix(in srgb, #24242d 88%, transparent);
+    --nexo-card-border: rgb(255 255 255 / 8%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --nexo-duration-fast: 0ms;
+      --nexo-duration-normal: 0ms;
+      --nexo-duration-slow: 0ms;
+    }
+  }
+}
