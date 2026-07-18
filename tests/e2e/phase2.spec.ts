@@ -47,7 +47,7 @@ test.describe('Phase 2 authenticated experience', () => {
 
     await page.goto('http://127.0.0.1:3000/login')
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(password)
+    await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await page.getByLabel('Nome da organização').fill(`Workspace ${suffix}`)
     await page.getByRole('button', { name: 'Criar e selecionar' }).click()
@@ -114,8 +114,9 @@ test.describe('Phase 2 authenticated experience', () => {
     })
     const first = (await firstResponse.json()) as { id: string }
     await mutation(request, `/v1/organizations/${first.id}/select`)
+    const secondName = `Beta ${suffix}`
     const secondResponse = await mutation(request, '/v1/organizations', {
-      name: `Beta ${suffix}`,
+      name: secondName,
       slug: `beta-${suffix}`,
     })
     const second = (await secondResponse.json()) as { id: string }

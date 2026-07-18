@@ -342,7 +342,7 @@ test.describe('Phase 1 critical journey', () => {
     await registerAndVerify(request, { email, name: 'Frontend E2E', password })
     await page.goto('http://localhost:3000/login')
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(password)
+    await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(
       page.getByRole('heading', { name: 'Escolha seu workspace' }),
