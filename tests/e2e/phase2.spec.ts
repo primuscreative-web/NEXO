@@ -81,7 +81,10 @@ test.describe('Phase 2 authenticated experience', () => {
     await expect(
       page.getByRole('complementary', { name: 'Navegação principal' }),
     ).toHaveAttribute('data-mobile-open', 'true')
-    await page.getByRole('button', { name: 'Fechar menu' }).press('Enter')
+    await page
+      .getByRole('complementary', { name: 'Navegação principal' })
+      .getByRole('button', { name: 'Fechar menu' })
+      .press('Enter')
 
     await page.getByRole('button', { name: /Phase 2 E2E/u }).click()
     await page.getByRole('menuitem', { name: 'Sair com segurança' }).click()
