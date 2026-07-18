@@ -129,6 +129,7 @@ test.describe('Phase 2 authenticated experience', () => {
     ).json()) as { role: { permissions: string[] } }[]
     expect(organizationAccess[0]?.role.permissions).toContain('team.read')
 
+    await page.context().addCookies((await request.storageState()).cookies)
     await page.goto('http://localhost:3000/dashboard')
     await expect(
       page.getByText(`Alpha ${suffix}`, { exact: true }),
