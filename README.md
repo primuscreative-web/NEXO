@@ -1,6 +1,6 @@
 # NEXO
 
-Enterprise SaaS platform foundation for omnichannel operations, CRM, automation, voice, and AI. Phase 1 adds owned identity, organizations, memberships, teams, authorization and append-only audit.
+Enterprise SaaS platform foundation for omnichannel operations, CRM, automation, voice, and AI. Phase 2 adds the official Nexus Precision design system, accessible authenticated shell, themes, typed navigation, internationalization and tenant-safe frontend state on top of Phase 1 identity and authorization.
 
 ## Requirements
 
@@ -43,8 +43,12 @@ pnpm lint
 pnpm typecheck
 pnpm test:unit
 pnpm test:integration
+pnpm test:components
+pnpm test:a11y
+pnpm test:visual
 pnpm test:coverage
 pnpm build
+pnpm bundle:check
 pnpm test:e2e
 pnpm security:audit
 ```
@@ -68,6 +72,7 @@ packages/
   shared/            minimal framework-free primitives
   storage/           replaceable object-storage port and test adapter
   testing/           shared test constants and future harnesses
+  ui/                semantic tokens and accessible reusable components
   auth/              password, opaque-token and signed-token infrastructure adapters
   contexts/identity/ identity rules and session rotation invariants
   contexts/organization/ tenant, membership and authorization policies
@@ -75,7 +80,7 @@ packages/
   contexts/platform/ audit and integration-event primitives
 ```
 
-Applications may import only public context APIs; applications never import another application or a context's private persistence implementation. Phase 1 operational guides are under `docs/runbooks/`.
+Applications may import only public context APIs; applications never import another application or a context's private persistence implementation. The Web consumes UI primitives only through `@nexo/ui`. Phase 1 operational guides are under `docs/runbooks/`; Phase 2 visual and frontend contracts are under `docs/design-system/` and `docs/frontend/`.
 
 Normative architecture: [NEXO Foundation Architecture v2.1](./NEXO_Foundation_Architecture_v2.1.md).
 

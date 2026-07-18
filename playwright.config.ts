@@ -4,6 +4,7 @@ const env = {
   ...process.env,
   NODE_ENV: 'test',
   LOG_LEVEL: process.env.CI ? 'info' : 'silent',
+  OPENAPI_ENABLED: process.env.OPENAPI_ENABLED ?? 'false',
 }
 
 export default defineConfig({
