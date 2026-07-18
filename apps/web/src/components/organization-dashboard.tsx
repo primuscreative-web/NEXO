@@ -1,42 +1,30 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  FormField,
+  Input,
+} from '@nexo/ui'
+import { Building2 } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
 import { apiFetch } from '../lib/api'
-
-interface OrganizationMembership {
-  organization: { id: string; name: string; slug: string; status: string }
-  role: { key: string; name: string }
-}
+import { t } from '../lib/i18n'
+import { tenantQueryCache } from '../lib/tenant-cache'
+import { useSession } from './session-context'
 
 export function OrganizationDashboard() {
-  const router = useRouter()
-  const [organizations, setOrganizations] = useState<OrganizationMembership[]>(
-    [],
-  )
-  const [loading, setLoading] = useState(true)
+  const session = useSession()
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function reload(signal?: AbortSignal) {
-    try {
-      setOrganizations(
-        await apiFetch('/v1/organizations', signal ? { signal } : {}),
-      )
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Falha ao carregar.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void reload(controller.signal)
-    return () => controller.abort()
-  }, [])
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setPending(true)
+    setError(null)
     const form = event.currentTarget
     const data = new FormData(form)
     const slugEntry = data.get('slug')
@@ -49,80 +37,98 @@ export function OrganizationDashboard() {
           ...(slug ? { slug } : {}),
         }),
       })
-      await apiFetch(`/v1/organizations/${organization.id}/select`, {
-        method: 'POST',
-      })
-      await reload()
-      router.refresh()
+      tenantQueryCache.clearAll()
+      await session.selectOrganization(organization.id)
       form.reset()
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : 'Falha ao criar organização.',
+        cause instanceof Error ? cause.message : t('onboarding.createError'),
       )
+    } finally {
+      setPending(false)
     }
   }
 
   return (
-    <section aria-labelledby="dashboard-title">
-      <div className="page-heading">
+    <section className="nexo-page" aria-labelledby="onboarding-title">
+      <header className="nexo-page-header nexo-page-header--hero">
         <div>
-          <p className="eyebrow">WORKSPACE</p>
-          <h1 id="dashboard-title">Suas organizações</h1>
-          <p className="summary">
-            Escolha o contexto ativo. Todas as permissões são reavaliadas a cada
-            troca.
-          </p>
+          <p className="nexo-eyebrow">{t('onboarding.eyebrow')}</p>
+          <h1 id="onboarding-title">{t('onboarding.title')}</h1>
+          <p>{t('onboarding.description')}</p>
         </div>
-      </div>
+      </header>
       {error && (
-        <p className="alert error" role="alert">
+        <Alert tone="danger" title={t('auth.cannotContinue')}>
           {error}
-        </p>
+        </Alert>
       )}
-      {loading ? (
-        <div className="skeleton" />
-      ) : (
-        <div className="card-grid">
-          {organizations.map(({ organization, role }) => (
-            <article className="card" key={organization.id}>
-              <span className="badge">{organization.status}</span>
+      {session.organizations.length > 0 ? (
+        <div className="nexo-card-grid">
+          {session.organizations.map(({ organization, role }) => (
+            <Card key={organization.id}>
+              <div className="nexo-card-heading">
+                <Building2 aria-hidden="true" />
+                <Badge tone="success">{organization.status}</Badge>
+              </div>
               <h2>{organization.name}</h2>
               <p>
                 {organization.slug} · {role.name}
               </p>
-              <button
-                className="button secondary"
-                type="button"
-                onClick={async () => {
-                  await apiFetch(
-                    `/v1/organizations/${organization.id}/select`,
-                    { method: 'POST' },
-                  )
-                  router.push('/app/organization')
-                }}
+              <Button
+                variant="secondary"
+                onClick={() => void session.selectOrganization(organization.id)}
               >
-                Selecionar
-              </button>
-            </article>
+                {t('onboarding.select')}
+              </Button>
+            </Card>
           ))}
         </div>
+      ) : (
+        <EmptyState
+          icon={Building2}
+          title={t('onboarding.emptyTitle')}
+          description={t('onboarding.emptyDescription')}
+        />
       )}
-      <article className="card form-card">
-        <h2>Criar uma organização</h2>
-        <form className="inline-form" onSubmit={create}>
-          <label>
-            Nome
-            <input name="name" required minLength={2} maxLength={160} />
-          </label>
-          <label>
-            Slug opcional
-            <input name="slug" minLength={3} maxLength={80} />
-          </label>
-          <button className="button primary" type="submit">
-            Criar e selecionar
-          </button>
+      <Card className="nexo-form-card">
+        <div>
+          <p className="nexo-eyebrow">{t('onboarding.newOrganization')}</p>
+          <h2>{t('onboarding.createWorkspace')}</h2>
+          <p>{t('onboarding.ownerNotice')}</p>
+        </div>
+        <form className="nexo-form-stack" onSubmit={create} aria-busy={pending}>
+          <FormField label={t('onboarding.organizationName')}>
+            {({ controlId }) => (
+              <Input
+                id={controlId}
+                name="name"
+                required
+                minLength={2}
+                maxLength={160}
+              />
+            )}
+          </FormField>
+          <FormField
+            label="Slug"
+            optional
+            description={t('onboarding.slugHelp')}
+          >
+            {({ controlId, descriptionId }) => (
+              <Input
+                id={controlId}
+                name="slug"
+                minLength={3}
+                maxLength={80}
+                aria-describedby={descriptionId}
+              />
+            )}
+          </FormField>
+          <Button loading={pending} type="submit">
+            {t('onboarding.createAndSelect')}
+          </Button>
         </form>
-      </article>
+      </Card>
     </section>
   )
 }

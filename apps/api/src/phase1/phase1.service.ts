@@ -778,20 +778,35 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
             userId: principal.userId,
             organizationId: membership.organizationId,
           },
-          async (transaction) => ({
-            organization: await transaction.organization.findUniqueOrThrow({
-              where: { id: membership.organizationId },
-            }),
-            role: await transaction.role.findUniqueOrThrow({
+          async (transaction) => {
+            const role = await transaction.role.findUniqueOrThrow({
               where: {
                 organizationId_id: {
                   organizationId: membership.organizationId,
                   id: membership.roleId,
                 },
               },
-              select: { key: true, name: true },
-            }),
-          }),
+              select: {
+                key: true,
+                name: true,
+                permissions: {
+                  select: { permission: { select: { key: true } } },
+                },
+              },
+            })
+            return {
+              organization: await transaction.organization.findUniqueOrThrow({
+                where: { id: membership.organizationId },
+              }),
+              role: {
+                key: role.key,
+                name: role.name,
+                permissions: role.permissions.map(
+                  ({ permission }) => permission.key,
+                ),
+              },
+            }
+          },
         ),
       ),
     )

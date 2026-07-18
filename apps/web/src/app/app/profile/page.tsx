@@ -1,5 +1,5 @@
-import { Phase1Admin } from '../../../components/phase1-admin'
+import { redirect } from 'next/navigation'
 
-export default function ProfilePage() {
-  return <Phase1Admin mode="profile" />
+export default function LegacyProfilePage() {
+  redirect('/settings/profile')
 }

@@ -9,19 +9,27 @@
     "lint": "eslint src",
     "start": "next start",
     "test": "vitest run --passWithNoTests",
+    "test:components": "vitest run --config vitest.components.config.ts",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:unit": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@nexo/organization": "workspace:*",
+    "@nexo/ui": "workspace:*",
+    "lucide-react": "1.24.0",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "@vitest/coverage-v8": "3.2.6",
+    "jsdom": "29.1.1",
     "rimraf": "6.0.1",
     "typescript": "catalog:",
     "vitest": "catalog:"

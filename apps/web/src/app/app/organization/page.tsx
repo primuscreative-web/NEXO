@@ -1,5 +1,5 @@
-import { Phase1Admin } from '../../../components/phase1-admin'
+import { redirect } from 'next/navigation'
 
-export default function OrganizationPage() {
-  return <Phase1Admin mode="organization" />
+export default function LegacyOrganizationPage() {
+  redirect('/settings/organization')
 }

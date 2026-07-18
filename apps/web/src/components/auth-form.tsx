@@ -1,12 +1,23 @@
 'use client'
 
+import { Alert, Button, Card, FormField, Input, PasswordInput } from '@nexo/ui'
+import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { apiFetch } from '../lib/api'
+import { t } from '../lib/i18n'
+import { ThemeToggle } from './theme-toggle'
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify'
+
+const titles: Record<AuthMode, string> = {
+  login: t('auth.title.login'),
+  register: t('auth.title.register'),
+  forgot: t('auth.title.forgot'),
+  reset: t('auth.title.reset'),
+  verify: t('auth.title.verify'),
+}
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter()
@@ -29,7 +40,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             password: data.get('password'),
           }),
         })
-        router.push('/app')
+        router.push('/dashboard')
       } else if (mode === 'register') {
         await apiFetch('/v1/auth/register', {
           method: 'POST',
@@ -45,9 +56,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           method: 'POST',
           body: JSON.stringify({ email: data.get('email') }),
         })
-        setMessage(
-          'Se a conta existir, enviaremos as instruções de recuperação.',
-        )
+        setMessage(t('auth.recoveryMessage'))
       } else if (mode === 'reset') {
         await apiFetch('/v1/auth/reset-password', {
           method: 'POST',
@@ -67,112 +76,163 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         router.push('/login?verified=1')
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Falha inesperada.')
+      setError(cause instanceof Error ? cause.message : t('auth.unexpected'))
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <main className="auth-layout">
-      <section className="auth-brand" aria-labelledby="brand-title">
-        <p className="eyebrow">NEXO · OPERAÇÕES CONECTADAS</p>
-        <h1 id="brand-title">
-          Sua empresa, equipes e acessos em um único lugar.
-        </h1>
-        <p className="summary">
-          Identidade segura, isolamento por organização e permissões verificadas
-          em cada ação.
-        </p>
+    <main className="nexo-auth-layout">
+      <section className="nexo-auth-brand" aria-labelledby="brand-title">
+        <div className="nexo-auth-brand__logo">
+          <span>N</span>
+          <strong>NEXO</strong>
+        </div>
+        <div className="nexo-auth-brand__copy">
+          <p className="nexo-eyebrow">{t('auth.brandTagline')}</p>
+          <h1 id="brand-title">{t('auth.brandTitle')}</h1>
+          <p>{t('auth.brandDescription')}</p>
+        </div>
+        <ul className="nexo-auth-benefits">
+          <li>
+            <ShieldCheck aria-hidden="true" /> {t('auth.benefitTenancy')}
+          </li>
+          <li>
+            <LockKeyhole aria-hidden="true" /> {t('auth.benefitSessions')}
+          </li>
+          <li>
+            <Sparkles aria-hidden="true" /> {t('auth.benefitFoundation')}
+          </li>
+        </ul>
       </section>
-      <section className="auth-card" aria-labelledby="form-title">
-        <p className="eyebrow">ACESSO SEGURO</p>
-        <h2 id="form-title">
-          {mode === 'login' && 'Entrar no NEXO'}
-          {mode === 'register' && 'Criar sua conta'}
-          {mode === 'forgot' && 'Recuperar acesso'}
-          {mode === 'reset' && 'Definir nova senha'}
-          {mode === 'verify' && 'Confirmar seu e-mail'}
-        </h2>
-        <form onSubmit={submit} aria-busy={pending}>
-          {mode === 'register' && (
-            <label>
-              Nome completo
-              <input
-                name="name"
-                minLength={2}
-                maxLength={160}
-                required
-                autoComplete="name"
-              />
-            </label>
-          )}
-          {mode !== 'reset' && mode !== 'verify' && (
-            <label>
-              E-mail
-              <input name="email" type="email" required autoComplete="email" />
-            </label>
-          )}
-          {mode === 'reset' && !search.get('token') && (
-            <label>
-              Token de recuperação
-              <input name="token" required autoComplete="off" />
-            </label>
-          )}
-          {mode === 'verify' && !search.get('token') && (
-            <label>
-              Token de verificação
-              <input name="token" required autoComplete="off" />
-            </label>
-          )}
-          {(mode === 'login' || mode === 'register' || mode === 'reset') && (
-            <label>
-              {mode === 'reset' ? 'Nova senha' : 'Senha'}
-              <input
-                name="password"
-                type="password"
-                minLength={12}
-                maxLength={128}
-                required
-                autoComplete={
-                  mode === 'login' ? 'current-password' : 'new-password'
+      <section className="nexo-auth-form-area" aria-labelledby="form-title">
+        <div className="nexo-auth-theme">
+          <ThemeToggle />
+        </div>
+        <Card className="nexo-auth-card">
+          <div className="nexo-auth-card__header">
+            <p className="nexo-eyebrow">{t('auth.secureAccess')}</p>
+            <h2 id="form-title">{titles[mode]}</h2>
+            <p>{t('auth.credentialsHelp')}</p>
+          </div>
+          <form
+            className="nexo-form-stack"
+            onSubmit={submit}
+            aria-busy={pending}
+          >
+            {mode === 'register' && (
+              <FormField label={t('auth.name')}>
+                {({ controlId }) => (
+                  <Input
+                    id={controlId}
+                    name="name"
+                    minLength={2}
+                    maxLength={160}
+                    required
+                    autoComplete="name"
+                  />
+                )}
+              </FormField>
+            )}
+            {mode !== 'reset' && mode !== 'verify' && (
+              <FormField label={t('auth.email')}>
+                {({ controlId }) => (
+                  <Input
+                    id={controlId}
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                  />
+                )}
+              </FormField>
+            )}
+            {mode === 'reset' && !search.get('token') && (
+              <FormField label={t('auth.recoveryToken')}>
+                {({ controlId }) => (
+                  <Input
+                    id={controlId}
+                    name="token"
+                    required
+                    autoComplete="off"
+                  />
+                )}
+              </FormField>
+            )}
+            {mode === 'verify' && !search.get('token') && (
+              <FormField label={t('auth.verificationToken')}>
+                {({ controlId }) => (
+                  <Input
+                    id={controlId}
+                    name="token"
+                    required
+                    autoComplete="off"
+                  />
+                )}
+              </FormField>
+            )}
+            {(mode === 'login' || mode === 'register' || mode === 'reset') && (
+              <FormField
+                label={
+                  mode === 'reset' ? t('auth.newPassword') : t('auth.password')
                 }
-              />
-              {mode !== 'login' && (
-                <span className="hint">
-                  Use ao menos 12 caracteres, maiúscula, minúscula e número.
-                </span>
-              )}
-            </label>
-          )}
-          {error && (
-            <p className="alert error" role="alert">
-              {error}
+                {...(mode === 'login'
+                  ? {}
+                  : {
+                      description: t('auth.passwordHelp'),
+                    })}
+              >
+                {({ controlId, descriptionId }) => (
+                  <PasswordInput
+                    id={controlId}
+                    aria-describedby={descriptionId}
+                    name="password"
+                    minLength={12}
+                    maxLength={128}
+                    required
+                    autoComplete={
+                      mode === 'login' ? 'current-password' : 'new-password'
+                    }
+                  />
+                )}
+              </FormField>
+            )}
+            {error && (
+              <Alert tone="danger" title={t('auth.cannotContinue')}>
+                {error}
+              </Alert>
+            )}
+            {message && (
+              <Alert tone="success" title={t('auth.requestReceived')}>
+                {message}
+              </Alert>
+            )}
+            <Button
+              block
+              loading={pending}
+              loadingLabel={t('auth.processing')}
+              type="submit"
+            >
+              {mode === 'login' ? t('auth.enter') : t('auth.continue')}
+            </Button>
+          </form>
+          <nav className="nexo-auth-links" aria-label={t('auth.alternatives')}>
+            {mode === 'login' ? (
+              <>
+                <Link href="/forgot-password">{t('auth.forgotPassword')}</Link>
+                <Link href="/register">{t('auth.createAccount')}</Link>
+              </>
+            ) : (
+              <Link href="/login">{t('auth.backToLogin')}</Link>
+            )}
+          </nav>
+          {mode === 'login' && search.get('reset') && (
+            <p className="nexo-auth-success" role="status">
+              <CheckCircle2 aria-hidden="true" /> {t('auth.passwordUpdated')}
             </p>
           )}
-          {message && (
-            <p className="alert success" role="status">
-              {message}
-            </p>
-          )}
-          <button className="button primary" disabled={pending} type="submit">
-            {pending
-              ? 'Processando…'
-              : mode === 'login'
-                ? 'Entrar'
-                : 'Continuar'}
-          </button>
-        </form>
-        <nav className="auth-links" aria-label="Alternativas de acesso">
-          {mode === 'login' ? (
-            <>
-              <Link href="/forgot-password">Esqueci minha senha</Link>
-              <Link href="/register">Criar conta</Link>
-            </>
-          ) : (
-            <Link href="/login">Voltar ao login</Link>
-          )}
-        </nav>
+        </Card>
       </section>
     </main>
   )

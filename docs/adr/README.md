@@ -16,3 +16,5 @@
 | [012](./012-managed-development-infrastructure.md)          | Managed development infrastructure  | Accepted                                 |
 | [013](./013-authentication-adapter-and-session-strategy.md) | Authentication adapter and sessions | Accepted                                 |
 | [014](./014-row-level-security-phase-1.md)                  | Phase 1 Row-Level Security          | Accepted                                 |
+| [015](./015-frontend-design-system-and-accessibility.md)    | Frontend design system and WCAG     | Accepted                                 |
+| [016](./016-frontend-tenant-cache-and-i18n.md)              | Tenant cache and i18n               | Accepted                                 |
