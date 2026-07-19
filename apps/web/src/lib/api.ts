@@ -1,5 +1,16 @@
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
+export class ApiError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 function csrfToken(): string | undefined {
   if (typeof document === 'undefined') return undefined
   return document.cookie
@@ -46,7 +57,9 @@ export async function apiFetch<T>(
     error?: { code: string; message: string }
   }
   if (!response.ok)
-    throw new Error(
+    throw new ApiError(
+      body.error?.code ?? 'unexpected_error',
+      response.status,
       body.error?.message ?? 'Não foi possível concluir a operação.',
     )
   return body

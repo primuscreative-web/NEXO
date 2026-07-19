@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { formatDateTime } from '../lib/format'
 
 interface Column {
   key: string
@@ -111,11 +112,9 @@ function readPath(value: Record<string, unknown>, path: string): unknown {
 }
 
 function formatValue(value: unknown): string {
-  if (value instanceof Date) return value.toLocaleString('pt-BR')
+  if (value instanceof Date) return formatDateTime(value)
   if (typeof value === 'string')
-    return /^\d{4}-\d{2}-\d{2}T/u.test(value)
-      ? new Date(value).toLocaleString('pt-BR')
-      : value
+    return /^\d{4}-\d{2}-\d{2}T/u.test(value) ? formatDateTime(value) : value
   if (value === null || value === undefined) return '—'
   if (typeof value === 'object') return JSON.stringify(value)
   if (typeof value === 'string' || typeof value === 'number') return `${value}`

@@ -34,6 +34,10 @@ import {
 } from './dto.js'
 import { Phase1Error, Phase1Service } from './phase1.service.js'
 
+// The disposable E2E suite provisions several unique accounts in one minute.
+// Every production-like environment keeps the security baseline of five.
+const registrationRateLimit = process.env.NODE_ENV === 'test' ? 20 : 5
+
 interface CookieReply {
   setCookie(name: string, value: string, options: object): void
   clearCookie(name: string, options: object): void
@@ -47,7 +51,7 @@ export class Phase1Controller {
 
   @Public()
   @Post('auth/register')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: registrationRateLimit, ttl: 60_000 } })
   register(@Body() body: RegisterDto, @Req() request: AuthenticatedRequest) {
     return this.phase1.register(body, this.#context(request))
   }

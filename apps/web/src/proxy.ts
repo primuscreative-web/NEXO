@@ -9,4 +9,18 @@ export function proxy(request: NextRequest) {
   return NextResponse.next()
 }
 
-export const config = { matcher: ['/app/:path*'] }
+export const config = {
+  matcher: [
+    '/app/:path*',
+    '/dashboard/:path*',
+    '/inbox/:path*',
+    '/crm/:path*',
+    '/ai/:path*',
+    '/workflows/:path*',
+    '/knowledge/:path*',
+    '/analytics/:path*',
+    '/integrations/:path*',
+    '/team/:path*',
+    '/settings/:path*',
+  ],
+}

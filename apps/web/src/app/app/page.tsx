@@ -1,5 +1,5 @@
-import { OrganizationDashboard } from '../../components/organization-dashboard'
+import { redirect } from 'next/navigation'
 
-export default function AppPage() {
-  return <OrganizationDashboard />
+export default function LegacyAppPage() {
+  redirect('/dashboard')
 }

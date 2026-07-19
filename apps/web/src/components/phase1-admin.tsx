@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { apiFetch } from '../lib/api'
+import { formatDateTime } from '../lib/format'
+import { tenantQueryCache } from '../lib/tenant-cache'
+import { useSession } from './session-context'
 
 interface Me {
   id: string
@@ -40,6 +43,7 @@ interface Page<T> {
 type AdminMode = 'organization' | 'members' | 'teams' | 'sessions' | 'profile'
 
 export function Phase1Admin({ mode }: { mode: AdminMode }) {
+  const shellSession = useSession()
   const [me, setMe] = useState<Me | null>(null)
   const [roles, setRoles] = useState<Role[]>([])
   const [members, setMembers] = useState<Membership[]>([])
@@ -96,7 +100,10 @@ export function Phase1Admin({ mode }: { mode: AdminMode }) {
     try {
       await operation()
       setNotice({ kind: 'success', text })
-      await reload()
+      if (me?.activeOrganizationId)
+        tenantQueryCache.clearOrganization(me.activeOrganizationId)
+      tenantQueryCache.clearAll()
+      await Promise.all([reload(), shellSession.reload()])
     } catch (cause) {
       showError(cause)
     }
@@ -366,7 +373,19 @@ export function Phase1Admin({ mode }: { mode: AdminMode }) {
                     <td>{session.userAgent ?? 'Não identificado'}</td>
                     <td>{session.status}</td>
                     <td>
-                      {new Date(session.expiresAt).toLocaleString('pt-BR')}
+                      {formatDateTime(session.expiresAt, {
+                        ...(shellSession.activeOrganization?.organization
+                          .timezone
+                          ? {
+                              organizationTimezone:
+                                shellSession.activeOrganization.organization
+                                  .timezone,
+                            }
+                          : {}),
+                        ...(shellSession.user?.timezone
+                          ? { userTimezone: shellSession.user.timezone }
+                          : {}),
+                      })}
                     </td>
                     <td>
                       <button

@@ -1,13 +1,14 @@
-import Link from 'next/link'
+import { Building2 } from 'lucide-react'
+import { SystemPage } from '../../components/system-page'
+
 export default function OrganizationUnavailablePage() {
   return (
-    <main className="state-page">
-      <span className="badge warning">Organização indisponível</span>
-      <h1>Este workspace está suspenso ou arquivado.</h1>
-      <p>Selecione outra organização ou contate um proprietário.</p>
-      <Link className="button primary" href="/app">
-        Trocar organização
-      </Link>
-    </main>
+    <SystemPage
+      icon={Building2}
+      tone="permission"
+      title="Organização indisponível"
+      description="Este workspace está suspenso ou arquivado. Selecione outra organização ou contate um proprietário."
+      actionLabel="Trocar organização"
+    />
   )
 }

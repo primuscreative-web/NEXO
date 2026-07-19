@@ -342,20 +342,24 @@ test.describe('Phase 1 critical journey', () => {
     await registerAndVerify(request, { email, name: 'Frontend E2E', password })
     await page.goto('http://localhost:3000/login')
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(password)
+    await page.getByLabel('Senha', { exact: true }).fill(password)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(
-      page.getByRole('heading', { name: 'Suas organizações' }),
+      page.getByRole('heading', { name: 'Escolha seu workspace' }),
     ).toBeVisible()
     const organizationName = `Organização visual ${suffix}`
-    await page.getByLabel('Nome').fill(organizationName)
+    await page.getByLabel('Nome da organização').fill(organizationName)
     await page.getByRole('button', { name: 'Criar e selecionar' }).click()
-    await expect(page).toHaveURL(/\/app/u)
+    await expect(page).toHaveURL(/\/dashboard/u)
     await expect(
-      page.getByRole('heading', { name: organizationName }),
+      page.getByRole('heading', { name: 'Central de operações' }),
     ).toBeVisible()
-    await expect(page.locator('.alert.error')).toHaveCount(0)
-    await page.getByRole('link', { name: 'Pessoas e convites' }).click()
+    await expect(
+      page.getByText(organizationName, { exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.nexo-inline-error')).toHaveCount(0)
+    await page.getByRole('link', { name: 'Configurações' }).click()
+    await page.getByRole('link', { name: /Pessoas e convites/u }).click()
     await expect(
       page.getByRole('heading', { name: 'Pessoas e convites' }),
     ).toBeVisible()
