@@ -24,7 +24,7 @@
     "@nexo/observability": "workspace:*",
     "@nexo/platform": "workspace:*",
     "@nexo/shared": "workspace:*",
-    "bullmq": "5.79.3",
+    "bullmq": "5.80.9",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:"
   },
