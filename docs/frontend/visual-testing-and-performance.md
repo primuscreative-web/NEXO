@@ -1,6 +1,6 @@
 # Visual regression and performance budgets
 
-Playwright snapshots cover login, dashboard/shell, members, teams and settings in desktop and mobile viewports, including light and dark critical states. Tests use deterministic isolated responses and clearly synthetic test identities; they never access production or developer data.
+Playwright snapshots cover login, dashboard/shell, members, teams and settings in desktop and mobile viewports, including light and dark critical states. Baselines are kept per OS because browser font rasterization differs between Windows and the Linux CI runner. Tests use deterministic isolated responses and clearly synthetic test identities; they never access production or developer data.
 
 To review an intentional visual change:
 
