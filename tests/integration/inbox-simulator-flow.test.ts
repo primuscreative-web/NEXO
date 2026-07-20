@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { SimulatorChannelProvider } from '@nexo/inbox'
+import { SimulatorChannelProvider } from '../../packages/contexts/inbox/src/index.js'
 import pg from 'pg'
 import { afterAll, describe, expect, it } from 'vitest'
 
