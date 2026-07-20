@@ -1,12 +1,42 @@
 import { randomUUID } from 'node:crypto'
 import { SimulatorChannelProvider } from '../../packages/contexts/inbox/src/index.js'
+import { InboxService } from '../../apps/api/src/inbox/inbox.service.js'
 import pg from 'pg'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const { Pool } = pg
 const connectionString = process.env.TEST_DATABASE_URL
 const pool = connectionString ? new Pool({ connectionString, max: 2 }) : null
 const configured = Boolean(pool)
+
+async function createAuthorizedActor(organizationId: string, keys: string[]) {
+  const userId = randomUUID()
+  const roleId = randomUUID()
+  const membershipId = randomUUID()
+  await pool!.query(
+    `INSERT INTO "identity_users" ("id","email","normalizedEmail","name","updatedAt") VALUES ($1,$2,$2,'Inbox actor',now())`,
+    [userId, `${userId}@example.test`],
+  )
+  await pool!.query(
+    `INSERT INTO "organization_roles" ("id","organizationId","key","name","updatedAt") VALUES ($1,$2,$3,'Inbox test role',now())`,
+    [roleId, organizationId, `inbox-${roleId}`],
+  )
+  for (const key of keys) {
+    const permission = await pool!.query<{ id: string }>(
+      `INSERT INTO "organization_permissions" ("id","key","description") VALUES (gen_random_uuid(),$1,$1) ON CONFLICT ("key") DO UPDATE SET "description"=EXCLUDED."description" RETURNING "id"`,
+      [key],
+    )
+    await pool!.query(
+      `INSERT INTO "organization_role_permissions" ("organizationId","roleId","permissionId") VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
+      [organizationId, roleId, permission.rows[0]!.id],
+    )
+  }
+  await pool!.query(
+    `INSERT INTO "organization_memberships" ("id","organizationId","userId","roleId","status","acceptedAt","updatedAt") VALUES ($1,$2,$3,$4,'ACTIVE',now(),now())`,
+    [membershipId, organizationId, userId, roleId],
+  )
+  return { userId, roleId, membershipId }
+}
 
 async function bootstrap() {
   const organizationId = randomUUID()
@@ -32,6 +62,9 @@ afterAll(async () => {
 })
 
 describe.skipIf(!configured)('Inbox simulator full workflow', () => {
+  beforeAll(() => {
+    process.env.DATABASE_URL = connectionString
+  })
   it('persists inbound/outbound messages, reuses the open conversation, and records the Outbox', async () => {
     const { organizationId, inboxId, contactId } = await bootstrap()
     const provider = new SimulatorChannelProvider()
@@ -223,5 +256,57 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
         )
       ).rows,
     ).toEqual([])
+  })
+
+  it('assigns and notes through the authorized InboxService', async () => {
+    const { organizationId, inboxId, contactId } = await bootstrap()
+    const conversationId = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","updatedAt") VALUES ($1,$2,$3,$4,now())`,
+      [conversationId, organizationId, inboxId, contactId],
+    )
+    const actor = await createAuthorizedActor(organizationId, [
+      'conversation.assign',
+      'note.create',
+    ])
+    const assignee = await createAuthorizedActor(organizationId, [])
+    const service = new InboxService()
+    const principal = {
+      userId: actor.userId,
+      sessionId: randomUUID(),
+      organizationId,
+    }
+    const context = { correlationId: randomUUID() }
+    await service.updateConversation(
+      principal,
+      conversationId,
+      { assigneeMembershipId: assignee.membershipId },
+      context,
+    )
+    const note = await service.addNote(
+      principal,
+      conversationId,
+      'Nota interna',
+      { correlationId: randomUUID() },
+    )
+    expect(note.authorMembershipId).toBe(actor.membershipId)
+    expect(
+      (
+        await pool!.query(
+          `SELECT "assigneeMembershipId" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationId],
+        )
+      ).rows[0]?.assigneeMembershipId,
+    ).toBe(assignee.membershipId)
+    expect(
+      (
+        await pool!.query(
+          `SELECT "eventType" FROM "platform_outbox_events" WHERE "organizationId"=$1 AND "aggregateId"=$2`,
+          [organizationId, conversationId],
+        )
+      ).rows.map((row) => row.eventType),
+    ).toEqual(
+      expect.arrayContaining(['ConversationAssigned', 'InternalNoteCreated']),
+    )
   })
 })
