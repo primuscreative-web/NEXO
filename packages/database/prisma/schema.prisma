@@ -392,6 +392,7 @@ model Inbox {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   @@unique([organizationId, name])
+  @@unique([organizationId, id])
   @@map("inbox_inboxes")
 }
 
@@ -410,6 +411,7 @@ model Contact {
   @@index([organizationId, name])
   @@index([organizationId, email])
   @@index([organizationId, phone])
+  @@unique([organizationId, id])
   @@map("crm_contacts")
 }
 
@@ -432,6 +434,7 @@ model Tag {
   color String? @db.VarChar(32)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   @@unique([organizationId, name])
+  @@unique([organizationId, id])
   @@map("inbox_tags")
 }
 
@@ -505,6 +508,7 @@ model ChannelAccount {
   enabled Boolean @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   @@unique([organizationId, provider, externalAccountId])
+  @@unique([organizationId, id])
   @@map("inbox_channel_accounts")
 }
 

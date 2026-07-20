@@ -161,37 +161,70 @@ export class InboxService {
   async updateConversation(
     principal: AuthPrincipal,
     id: string,
-    input: { status?: string; assigneeMembershipId?: string; teamId?: string },
+    input: {
+      status?: string
+      assigneeMembershipId?: string | null
+      teamId?: string | null
+    },
     context: RequestContext,
   ) {
     const org = this.#org(principal)
+    const assignmentChange =
+      Object.hasOwn(input, 'assigneeMembershipId') ||
+      Object.hasOwn(input, 'teamId')
     return this.#allowed(
       principal,
-      input.assigneeMembershipId || input.teamId
-        ? 'conversation.assign'
-        : 'conversation.update',
+      assignmentChange ? 'conversation.assign' : 'conversation.update',
       async (tx) => {
         const current = await tx.conversation.findFirstOrThrow({
           where: { organizationId: org, id },
         })
         if (input.status)
           assertConversationTransition(current.status, input.status as never)
+        if (input.assigneeMembershipId) {
+          const assignee = await tx.membership.findFirst({
+            where: {
+              id: input.assigneeMembershipId,
+              organizationId: org,
+              status: 'ACTIVE',
+            },
+          })
+          if (!assignee) throw new Phase1Error('not_found', 404, 'Not found')
+        }
+        if (input.teamId) {
+          const team = await tx.team.findFirst({
+            where: { id: input.teamId, organizationId: org, status: 'ACTIVE' },
+          })
+          if (!team) throw new Phase1Error('not_found', 404, 'Not found')
+        }
         const row = await tx.conversation.update({
           where: { id },
           data: {
             ...(input.status ? { status: input.status as never } : {}),
-            ...(input.assigneeMembershipId
-              ? { assigneeMembershipId: input.assigneeMembershipId }
+            ...(Object.hasOwn(input, 'assigneeMembershipId')
+              ? { assigneeMembershipId: input.assigneeMembershipId ?? null }
               : {}),
-            ...(input.teamId ? { teamId: input.teamId } : {}),
+            ...(Object.hasOwn(input, 'teamId')
+              ? { teamId: input.teamId ?? null }
+              : {}),
           },
         })
         await this.#outbox(
           tx,
           context,
           org,
-          input.status ? 'ConversationStatusChanged' : 'ConversationAssigned',
+          input.status
+            ? 'ConversationStatusChanged'
+            : input.assigneeMembershipId === null
+              ? 'ConversationUnassigned'
+              : 'ConversationAssigned',
           id,
+          {
+            ...(input.status ? { status: input.status } : {}),
+            ...(Object.hasOwn(input, 'assigneeMembershipId')
+              ? { assigneeMembershipId: input.assigneeMembershipId }
+              : {}),
+          },
         )
         return row
       },
@@ -205,6 +238,9 @@ export class InboxService {
   ) {
     const org = this.#org(principal)
     return this.#allowed(principal, 'note.create', async (tx) => {
+      await tx.conversation.findFirstOrThrow({
+        where: { organizationId: org, id: conversationId },
+      })
       const membership = await tx.membership.findUniqueOrThrow({
         where: {
           organizationId_userId: {
