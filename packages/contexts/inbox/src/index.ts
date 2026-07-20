@@ -45,13 +45,13 @@ export interface ChannelProvider {
 /** Deterministic adapter used by demos and contract tests before external credentials exist. */
 export class SimulatorChannelProvider implements ChannelProvider {
   readonly key = 'simulator'
-  async send(input: {
+  send(input: {
     channelAccountId: string
     externalConversationId?: string
     body: string
     idempotencyKey: string
   }) {
-    return { externalId: `sim:${input.idempotencyKey}` }
+    return Promise.resolve({ externalId: `sim:${input.idempotencyKey}` })
   }
 }
 
