@@ -14,6 +14,18 @@ export const permissionKeys = [
   'audit.read',
   'session.read',
   'session.revoke',
+  'inbox.read',
+  'inbox.manage',
+  'conversation.read',
+  'conversation.reply',
+  'conversation.assign',
+  'conversation.update',
+  'contact.read',
+  'contact.create',
+  'contact.update',
+  'contact.merge',
+  'tag.manage',
+  'note.create',
 ] as const
 
 export type PermissionKey = (typeof permissionKeys)[number]
@@ -41,7 +53,18 @@ export const rolePermissions: Readonly<
     'team.update',
     'session.read',
   ]),
-  agent: new Set(['organization.read', 'team.read']),
+  agent: new Set([
+    'organization.read',
+    'team.read',
+    'inbox.read',
+    'conversation.read',
+    'conversation.reply',
+    'conversation.update',
+    'contact.read',
+    'contact.create',
+    'contact.update',
+    'note.create',
+  ]),
   analyst: new Set([
     'organization.read',
     'membership.read',

@@ -160,6 +160,9 @@ importers:
       '@nexo/identity':
         specifier: workspace:*
         version: link:../../packages/contexts/identity
+      '@nexo/inbox':
+        specifier: workspace:*
+        version: link:../../packages/contexts/inbox
       '@nexo/notification':
         specifier: workspace:*
         version: link:../../packages/contexts/notification
@@ -452,6 +455,15 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6)
+
+  packages/contexts/inbox:
+    devDependencies:
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.0(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.10)(tsx@4.20.6)(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
 
   packages/contexts/notification:
     devDependencies:
