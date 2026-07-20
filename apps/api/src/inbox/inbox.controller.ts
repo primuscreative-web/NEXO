@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Inject,
@@ -87,6 +88,30 @@ export class InboxController {
   ) {
     this.#c(r, c)
     return this.inbox.createTag(this.#p(r), b.name, b.color)
+  }
+  @Get('inbox/conversations/:id/tags') tags(
+    @Param('id') id: string,
+    @Req() r: AuthenticatedRequest,
+  ) {
+    return this.inbox.listConversationTags(this.#p(r), id)
+  }
+  @Post('inbox/conversations/:id/tags/:tagId') addTag(
+    @Param('id') id: string,
+    @Param('tagId') tagId: string,
+    @Req() r: AuthenticatedRequest,
+    @Headers('x-csrf-token') c?: string,
+  ) {
+    this.#c(r, c)
+    return this.inbox.addConversationTag(this.#p(r), id, tagId, this.#x(r))
+  }
+  @Delete('inbox/conversations/:id/tags/:tagId') removeTag(
+    @Param('id') id: string,
+    @Param('tagId') tagId: string,
+    @Req() r: AuthenticatedRequest,
+    @Headers('x-csrf-token') c?: string,
+  ) {
+    this.#c(r, c)
+    return this.inbox.removeConversationTag(this.#p(r), id, tagId, this.#x(r))
   }
   @Get('inbox/dashboard') dashboard(@Req() r: AuthenticatedRequest) {
     return this.inbox.dashboard(this.#p(r))

@@ -243,6 +243,75 @@ export class InboxService {
       }),
     )
   }
+  async listConversationTags(principal: AuthPrincipal, conversationId: string) {
+    const org = this.#org(principal)
+    return this.#allowed(principal, 'conversation.read', async (tx) => {
+      await tx.conversation.findFirstOrThrow({
+        where: { organizationId: org, id: conversationId },
+      })
+      const rows = await tx.conversationTag.findMany({
+        where: { organizationId: org, conversationId },
+      })
+      return Promise.all(
+        rows.map(({ tagId }) =>
+          tx.tag.findFirstOrThrow({
+            where: { organizationId: org, id: tagId },
+          }),
+        ),
+      )
+    })
+  }
+  async addConversationTag(
+    principal: AuthPrincipal,
+    conversationId: string,
+    tagId: string,
+    context: RequestContext,
+  ) {
+    const org = this.#org(principal)
+    return this.#allowed(principal, 'conversation.update', async (tx) => {
+      await tx.conversation.findFirstOrThrow({
+        where: { organizationId: org, id: conversationId },
+      })
+      await tx.tag.findFirstOrThrow({
+        where: { organizationId: org, id: tagId },
+      })
+      const row = await tx.conversationTag.create({
+        data: { organizationId: org, conversationId, tagId },
+      })
+      await this.#outbox(
+        tx,
+        context,
+        org,
+        'ConversationTagAdded',
+        conversationId,
+        { tagId },
+      )
+      return row
+    })
+  }
+  async removeConversationTag(
+    principal: AuthPrincipal,
+    conversationId: string,
+    tagId: string,
+    context: RequestContext,
+  ) {
+    const org = this.#org(principal)
+    return this.#allowed(principal, 'conversation.update', async (tx) => {
+      const deleted = await tx.conversationTag.deleteMany({
+        where: { organizationId: org, conversationId, tagId },
+      })
+      if (deleted.count !== 1)
+        throw new Phase1Error('not_found', 404, 'Not found')
+      await this.#outbox(
+        tx,
+        context,
+        org,
+        'ConversationTagRemoved',
+        conversationId,
+        { tagId },
+      )
+    })
+  }
   async dashboard(principal: AuthPrincipal) {
     const org = this.#org(principal)
     return this.#allowed(principal, 'inbox.read', async (tx) => ({
@@ -295,6 +364,7 @@ export class InboxService {
     organizationId: string,
     eventType: string,
     aggregateId: string,
+    payload: Readonly<Record<string, unknown>> = {},
   ) {
     await tx.outboxEvent.create({
       data: {
@@ -307,7 +377,7 @@ export class InboxService {
         occurredAt: new Date(),
         organizationId,
         aggregateId,
-        payload: { aggregateId },
+        payload: { aggregateId, ...payload },
       },
     })
   }

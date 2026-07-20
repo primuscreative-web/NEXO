@@ -435,6 +435,18 @@ model Tag {
   @@map("inbox_tags")
 }
 
+model ConversationTag {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  conversationId String @db.Uuid
+  tagId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, conversationId, tagId])
+  @@index([organizationId, conversationId])
+  @@index([organizationId, tagId])
+  @@map("inbox_conversation_tags")
+}
+
 model Conversation {
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid
