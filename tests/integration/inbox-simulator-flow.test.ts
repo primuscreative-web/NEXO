@@ -13,7 +13,7 @@ async function bootstrap() {
   const inboxId = randomUUID()
   const contactId = randomUUID()
   await pool!.query(
-    `INSERT INTO "organization_organizations" ("id","name","slug","updatedAt") VALUES ($1,'Simulator','simulator-' || substr($1::text,1,8),now())`,
+    `INSERT INTO "organization_organizations" ("id","name","slug","updatedAt") VALUES ($1::uuid,'Simulator','simulator-' || substr($1::uuid::text,1,8),now())`,
     [organizationId],
   )
   await pool!.query(
