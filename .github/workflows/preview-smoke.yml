@@ -11,7 +11,7 @@ jobs:
     name: controlled-preview-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: preview
+    environment: Preview
     env:
       APP_ENV: preview
       PREVIEW_CONFIRM: NEXO_PREVIEW
