@@ -56,7 +56,11 @@ beforeAll(async () => {
       [membershipId, organizationId, userId, role.rows[0]!.id],
     )
     await pool.query(
-      `INSERT INTO "inbox_inboxes" ("id","organizationId","name","updatedAt") VALUES (gen_random_uuid(),$1,'Inbox',now()) ON CONFLICT DO NOTHING; INSERT INTO "crm_contacts" ("id","organizationId","name","updatedAt") VALUES (gen_random_uuid(),$1,'Contact',now()) ON CONFLICT DO NOTHING;`,
+      `INSERT INTO "inbox_inboxes" ("id","organizationId","name","updatedAt") VALUES (gen_random_uuid(),$1,'Inbox',now()) ON CONFLICT DO NOTHING`,
+      [organizationId],
+    )
+    await pool.query(
+      `INSERT INTO "crm_contacts" ("id","organizationId","name","updatedAt") VALUES (gen_random_uuid(),$1,'Contact',now()) ON CONFLICT DO NOTHING`,
       [organizationId],
     )
   }
