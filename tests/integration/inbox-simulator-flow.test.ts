@@ -72,7 +72,7 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
         ['MessageSent', conversationId],
       ] as const)
         await pool!.query(
-          `INSERT INTO "platform_outbox_events" ("id","idempotencyKey","eventType","eventVersion","source","correlationId","organizationId","aggregateId","payload","occurredAt") VALUES (gen_random_uuid(),$1,$2,1,'nexo.inbox',$3,$4,$5,$6,now())`,
+          `INSERT INTO "platform_outbox_events" ("id","idempotencyKey","eventType","eventVersion","source","correlationId","organizationId","aggregateId","payload","occurredAt","status","publishedAt") VALUES (gen_random_uuid(),$1,$2,1,'nexo.inbox',$3,$4,$5,$6,now(),'PUBLISHED',now())`,
           [
             `sim:${eventType}:${aggregateId}`,
             eventType,
