@@ -156,6 +156,34 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
         )
       ).rows[0]?.status,
     ).toBe('PENDING')
+    await pool!.query(
+      `UPDATE "inbox_conversations" SET "status"='CLOSED',"updatedAt"=now() WHERE "id"=$1 AND "status"='PENDING'`,
+      [conversationId],
+    )
+    await pool!.query(
+      `UPDATE "inbox_conversations" SET "status"='OPEN',"updatedAt"=now() WHERE "id"=$1 AND "status"='CLOSED'`,
+      [conversationId],
+    )
+    await pool!.query(
+      `DELETE FROM "inbox_conversation_tags" WHERE "organizationId"=$1 AND "conversationId"=$2 AND "tagId"=$3`,
+      [organizationId, conversationId, tagId],
+    )
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "inbox_conversation_tags" WHERE "conversationId"=$1`,
+          [conversationId],
+        )
+      ).rows,
+    ).toEqual([])
+    expect(
+      (
+        await pool!.query(
+          `SELECT "status" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationId],
+        )
+      ).rows[0]?.status,
+    ).toBe('OPEN')
   })
 
   it('rolls back a tag association when its durable event cannot be written', async () => {
