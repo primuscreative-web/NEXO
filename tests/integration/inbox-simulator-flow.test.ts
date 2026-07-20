@@ -308,6 +308,10 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
     ).toEqual(
       expect.arrayContaining(['ConversationAssigned', 'InternalNoteCreated']),
     )
+    await pool!.query(
+      `UPDATE "platform_outbox_events" SET "status"='PUBLISHED',"publishedAt"=now() WHERE "organizationId"=$1 AND "aggregateId"=$2`,
+      [organizationId, conversationId],
+    )
   })
 
   it('rejects assignment without conversation.assign RolePermission', async () => {
