@@ -101,14 +101,13 @@ export class InboxService {
           status: { not: 'CLOSED' },
         },
       })
-      if (!conversation)
-        conversation = await tx.conversation.create({
-          data: {
-            organizationId: org,
-            inboxId: inbox.id,
-            contactId: channel.contactId,
-          },
-        })
+      conversation ??= await tx.conversation.create({
+        data: {
+          organizationId: org,
+          inboxId: inbox.id,
+          contactId: channel.contactId,
+        },
+      })
       const message = await tx.message.create({
         data: {
           organizationId: org,
