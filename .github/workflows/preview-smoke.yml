@@ -19,8 +19,12 @@ jobs:
       REDIS_URL: ${{ secrets.REDIS_URL }}
       AUTH_JWT_PRIVATE_KEY: ${{ secrets.AUTH_JWT_PRIVATE_KEY }}
       AUTH_JWT_PUBLIC_KEY: ${{ secrets.AUTH_JWT_PUBLIC_KEY }}
+      AUTH_JWT_ISSUER: ${{ vars.AUTH_JWT_ISSUER }}
+      AUTH_JWT_AUDIENCE: ${{ vars.AUTH_JWT_AUDIENCE }}
       WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
       NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      NODE_ENV: production
+      OPENAPI_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -31,4 +35,34 @@ jobs:
       - run: pnpm env:validate
       - run: pnpm prisma:generate
       - run: pnpm prisma:migrate
-      - run: pnpm preview:smoke
+      - run: pnpm build
+      - name: Run controlled runtime smoke
+        shell: bash
+        env:
+          PREVIEW_SMOKE_API_URL: http://127.0.0.1:3001
+          PREVIEW_SMOKE_WORKER_URL: http://127.0.0.1:3002
+        run: |
+          set -euo pipefail
+          pnpm --filter @nexo/api start >/tmp/nexo-preview-api.log 2>&1 & api_pid=$!
+          pnpm --filter @nexo/worker start >/tmp/nexo-preview-worker.log 2>&1 & worker_pid=$!
+          cleanup() {
+            status=$?
+            trap - EXIT
+            set +e
+            pnpm preview:cleanup
+            cleanup_status=$?
+            kill "$api_pid" "$worker_pid" 2>/dev/null || true
+            if [ "$status" -ne 0 ]; then exit "$status"; fi
+            exit "$cleanup_status"
+          }
+          trap cleanup EXIT
+          for port in 3001 3002; do
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent "http://127.0.0.1:${port}/health/live" >/dev/null; then break; fi
+              if [ "$attempt" = 30 ]; then exit 1; fi
+              sleep 1
+            done
+          done
+          pnpm preview:smoke
+          pnpm preview:seed
+          pnpm preview:runtime-smoke

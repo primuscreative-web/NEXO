@@ -24,6 +24,7 @@
     "prisma:migrate": "pnpm --filter @nexo/database prisma:migrate",
     "prisma:validate": "pnpm --filter @nexo/database prisma:validate",
     "preview:cleanup": "node tooling/scripts/preview-seed.mjs --cleanup",
+    "preview:runtime-smoke": "tsx tooling/scripts/preview-runtime-smoke.ts",
     "preview:seed": "node tooling/scripts/preview-seed.mjs",
     "preview:smoke": "node tooling/scripts/preview-smoke.mjs",
     "generate:jwt-keys": "node tooling/scripts/generate-jwt-keys.mjs",
