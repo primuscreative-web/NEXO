@@ -309,4 +309,198 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
       expect.arrayContaining(['ConversationAssigned', 'InternalNoteCreated']),
     )
   })
+
+  it('rejects assignment without conversation.assign RolePermission', async () => {
+    const { organizationId, inboxId, contactId } = await bootstrap()
+    const conversationId = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","updatedAt") VALUES ($1,$2,$3,$4,now())`,
+      [conversationId, organizationId, inboxId, contactId],
+    )
+    const denied = await createAuthorizedActor(organizationId, [])
+    const principal = {
+      userId: denied.userId,
+      sessionId: randomUUID(),
+      organizationId,
+    }
+    const service = new InboxService()
+    await expect(
+      service.updateConversation(
+        principal,
+        conversationId,
+        { assigneeMembershipId: denied.membershipId },
+        { correlationId: randomUUID() },
+      ),
+    ).rejects.toThrow()
+    expect(
+      (
+        await pool!.query(
+          `SELECT "assigneeMembershipId" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationId],
+        )
+      ).rows[0]?.assigneeMembershipId,
+    ).toBeNull()
+  })
+
+  it('rejects notes without note.create RolePermission', async () => {
+    const { organizationId, inboxId, contactId } = await bootstrap()
+    const conversationId = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","updatedAt") VALUES ($1,$2,$3,$4,now())`,
+      [conversationId, organizationId, inboxId, contactId],
+    )
+    const denied = await createAuthorizedActor(organizationId, [])
+    const service = new InboxService()
+    await expect(
+      service.addNote(
+        { userId: denied.userId, sessionId: randomUUID(), organizationId },
+        conversationId,
+        'nota sem permissao',
+        { correlationId: randomUUID() },
+      ),
+    ).rejects.toThrow()
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "inbox_internal_notes" WHERE "conversationId"=$1`,
+          [conversationId],
+        )
+      ).rows,
+    ).toEqual([])
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "platform_outbox_events" WHERE "organizationId"=$1 AND "aggregateId"=$2 AND "eventType"='InternalNoteCreated'`,
+          [organizationId, conversationId],
+        )
+      ).rows,
+    ).toEqual([])
+  })
+
+  it('rejects a forbidden domain transition without an Outbox event', async () => {
+    const { organizationId, inboxId, contactId } = await bootstrap()
+    const conversationId = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","status","updatedAt") VALUES ($1,$2,$3,$4,'CLOSED',now())`,
+      [conversationId, organizationId, inboxId, contactId],
+    )
+    const actor = await createAuthorizedActor(organizationId, [
+      'conversation.update',
+    ])
+    const service = new InboxService()
+    await expect(
+      service.updateConversation(
+        { userId: actor.userId, sessionId: randomUUID(), organizationId },
+        conversationId,
+        { status: 'PENDING' },
+        { correlationId: randomUUID() },
+      ),
+    ).rejects.toThrow('invalid_conversation_transition')
+    expect(
+      (
+        await pool!.query(
+          `SELECT "status" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationId],
+        )
+      ).rows[0]?.status,
+    ).toBe('CLOSED')
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "platform_outbox_events" WHERE "organizationId"=$1 AND "aggregateId"=$2 AND "eventType"='ConversationStatusChanged'`,
+          [organizationId, conversationId],
+        )
+      ).rows,
+    ).toEqual([])
+  })
+
+  it('blocks cross-tenant assignment, notes, and status changes through InboxService', async () => {
+    const organizationA = await bootstrap()
+    const organizationB = await bootstrap()
+    const conversationA = randomUUID()
+    const conversationB = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","updatedAt") VALUES ($1,$2,$3,$4,now()),($5,$6,$7,$8,now())`,
+      [
+        conversationA,
+        organizationA.organizationId,
+        organizationA.inboxId,
+        organizationA.contactId,
+        conversationB,
+        organizationB.organizationId,
+        organizationB.inboxId,
+        organizationB.contactId,
+      ],
+    )
+    const actorA = await createAuthorizedActor(organizationA.organizationId, [
+      'conversation.assign',
+      'conversation.update',
+      'note.create',
+    ])
+    const assigneeB = await createAuthorizedActor(
+      organizationB.organizationId,
+      [],
+    )
+    const principalA = {
+      userId: actorA.userId,
+      sessionId: randomUUID(),
+      organizationId: organizationA.organizationId,
+    }
+    const service = new InboxService()
+
+    await expect(
+      service.updateConversation(
+        principalA,
+        conversationA,
+        { assigneeMembershipId: assigneeB.membershipId },
+        { correlationId: randomUUID() },
+      ),
+    ).rejects.toThrow()
+    await expect(
+      service.addNote(principalA, conversationB, 'tentativa entre tenants', {
+        correlationId: randomUUID(),
+      }),
+    ).rejects.toThrow()
+    await expect(
+      service.updateConversation(
+        principalA,
+        conversationB,
+        { status: 'PENDING' },
+        { correlationId: randomUUID() },
+      ),
+    ).rejects.toThrow()
+
+    expect(
+      (
+        await pool!.query(
+          `SELECT "assigneeMembershipId" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationA],
+        )
+      ).rows[0]?.assigneeMembershipId,
+    ).toBeNull()
+    expect(
+      (
+        await pool!.query(
+          `SELECT "status" FROM "inbox_conversations" WHERE "id"=$1`,
+          [conversationB],
+        )
+      ).rows[0]?.status,
+    ).toBe('OPEN')
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "inbox_internal_notes" WHERE "conversationId"=$1`,
+          [conversationB],
+        )
+      ).rows,
+    ).toEqual([])
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "platform_outbox_events" WHERE "aggregateId" IN ($1,$2)`,
+          [conversationA, conversationB],
+        )
+      ).rows,
+    ).toEqual([])
+  })
 })
