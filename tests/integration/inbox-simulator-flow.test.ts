@@ -157,4 +157,43 @@ describe.skipIf(!configured)('Inbox simulator full workflow', () => {
       ).rows[0]?.status,
     ).toBe('PENDING')
   })
+
+  it('rolls back a tag association when its durable event cannot be written', async () => {
+    const { organizationId, inboxId, contactId } = await bootstrap()
+    const conversationId = randomUUID()
+    const tagId = randomUUID()
+    await pool!.query(
+      `INSERT INTO "inbox_conversations" ("id","organizationId","inboxId","contactId","updatedAt") VALUES ($1,$2,$3,$4,now())`,
+      [conversationId, organizationId, inboxId, contactId],
+    )
+    await pool!.query(
+      `INSERT INTO "inbox_tags" ("id","organizationId","name") VALUES ($1,$2,'rollback')`,
+      [tagId, organizationId],
+    )
+    await pool!.query('BEGIN')
+    try {
+      await pool!.query(
+        `INSERT INTO "inbox_conversation_tags" ("organizationId","conversationId","tagId") VALUES ($1,$2,$3)`,
+        [organizationId, conversationId, tagId],
+      )
+      await expect(
+        pool!.query(
+          `INSERT INTO "platform_outbox_events" ("id","idempotencyKey","eventType","eventVersion","source","correlationId","organizationId","aggregateId","payload","occurredAt") VALUES (gen_random_uuid(),NULL,'ConversationTagAdded',1,'nexo.inbox',$1,$2,$3,'{}',now())`,
+          [randomUUID(), organizationId, conversationId],
+        ),
+      ).rejects.toThrow()
+      await pool!.query('ROLLBACK')
+    } catch (error) {
+      await pool!.query('ROLLBACK')
+      throw error
+    }
+    expect(
+      (
+        await pool!.query(
+          `SELECT "id" FROM "inbox_conversation_tags" WHERE "conversationId"=$1`,
+          [conversationId],
+        )
+      ).rows,
+    ).toEqual([])
+  })
 })
