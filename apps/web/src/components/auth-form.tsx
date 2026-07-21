@@ -11,6 +11,12 @@ import { ThemeToggle } from './theme-toggle'
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify'
 
+interface OrganizationAccess {
+  organization: {
+    id: string
+  }
+}
+
 const titles: Record<AuthMode, string> = {
   login: t('auth.title.login'),
   register: t('auth.title.register'),
@@ -40,6 +46,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             password: data.get('password'),
           }),
         })
+        const organizations =
+          await apiFetch<OrganizationAccess[]>('/v1/organizations')
+        const organizationId = organizations[0]?.organization.id
+        if (organizations.length === 1 && organizationId) {
+          await apiFetch(`/v1/organizations/${organizationId}/select`, {
+            method: 'POST',
+          })
+        }
         router.push('/dashboard')
       } else if (mode === 'register') {
         await apiFetch('/v1/auth/register', {
