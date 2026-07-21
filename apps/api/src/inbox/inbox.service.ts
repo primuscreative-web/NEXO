@@ -53,6 +53,68 @@ export class InboxService {
         }),
     )
   }
+  async detail(principal: AuthPrincipal, conversationId: string) {
+    const org = this.#org(principal)
+    return this.#allowed(principal, 'conversation.read', async (tx) => {
+      const conversation = await tx.conversation.findFirstOrThrow({
+        where: { organizationId: org, id: conversationId },
+      })
+      const [contact, inbox, messages, notes, tagLinks, assignee, team] =
+        await Promise.all([
+          tx.contact.findFirstOrThrow({
+            where: { organizationId: org, id: conversation.contactId },
+          }),
+          tx.inbox.findFirstOrThrow({
+            where: { organizationId: org, id: conversation.inboxId },
+          }),
+          tx.message.findMany({
+            where: { organizationId: org, conversationId },
+            orderBy: { createdAt: 'asc' },
+          }),
+          tx.internalNote.findMany({
+            where: { organizationId: org, conversationId },
+            orderBy: { createdAt: 'asc' },
+          }),
+          tx.conversationTag.findMany({
+            where: { organizationId: org, conversationId },
+            orderBy: { createdAt: 'asc' },
+          }),
+          conversation.assigneeMembershipId
+            ? tx.membership.findFirst({
+                where: {
+                  organizationId: org,
+                  id: conversation.assigneeMembershipId,
+                },
+                include: {
+                  user: { select: { id: true, name: true, email: true } },
+                },
+              })
+            : null,
+          conversation.teamId
+            ? tx.team.findFirst({
+                where: { organizationId: org, id: conversation.teamId },
+              })
+            : null,
+        ])
+      const tags = await Promise.all(
+        tagLinks.map(({ tagId }) =>
+          tx.tag.findFirstOrThrow({
+            where: { organizationId: org, id: tagId },
+          }),
+        ),
+      )
+      return {
+        conversation,
+        contact,
+        inbox,
+        messages,
+        notes,
+        tags,
+        assignee,
+        team,
+      }
+    })
+  }
   async simulateInbound(
     principal: AuthPrincipal,
     input: { contactName: string; identifier: string; body: string },
@@ -276,6 +338,15 @@ export class InboxService {
     return this.#allowed(principal, 'tag.manage', (tx) =>
       tx.tag.create({
         data: { organizationId: org, name, ...(color ? { color } : {}) },
+      }),
+    )
+  }
+  async listTags(principal: AuthPrincipal) {
+    const org = this.#org(principal)
+    return this.#allowed(principal, 'conversation.read', (tx) =>
+      tx.tag.findMany({
+        where: { organizationId: org },
+        orderBy: { name: 'asc' },
       }),
     )
   }

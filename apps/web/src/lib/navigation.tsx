@@ -47,7 +47,11 @@ export const routes = [
     description: 'Visão real da fundação organizacional do NEXO.',
     shortcut: ['G', 'D'],
   }),
-  planned('/inbox', t('nav.inbox'), Inbox, 3, 'workspace'),
+  route('/inbox', t('nav.inbox'), Inbox, 'workspace', {
+    description:
+      'Conversas, mensagens sintéticas, atribuições e notas internas.',
+    permission: 'conversation.read',
+  }),
   planned('/crm', t('nav.crm'), ContactRound, 7, 'workspace'),
   planned('/ai', t('nav.ai'), Bot, 5, 'workspace'),
   planned('/workflows', t('nav.workflows'), Workflow, 8, 'workspace'),

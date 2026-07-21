@@ -38,6 +38,12 @@ export class InboxController {
       limit: Number(limit) || 25,
     })
   }
+  @Get('inbox/conversations/:id') detail(
+    @Param('id') id: string,
+    @Req() r: AuthenticatedRequest,
+  ) {
+    return this.inbox.detail(this.#p(r), id)
+  }
   @Post('inboxes') create(
     @Body() b: CreateInboxDto,
     @Req() r: AuthenticatedRequest,
@@ -88,6 +94,9 @@ export class InboxController {
   ) {
     this.#c(r, c)
     return this.inbox.createTag(this.#p(r), b.name, b.color)
+  }
+  @Get('inbox/tags') listTags(@Req() r: AuthenticatedRequest) {
+    return this.inbox.listTags(this.#p(r))
   }
   @Get('inbox/conversations/:id/tags') tags(
     @Param('id') id: string,

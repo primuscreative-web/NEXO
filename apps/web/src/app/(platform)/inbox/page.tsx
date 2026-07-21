@@ -1,11 +1,5 @@
-import { FutureModulePage } from '../../../components/future-module-page'
+import { InboxWorkspace } from '../../../components/inbox-workspace'
 
 export default function InboxPage() {
-  return (
-    <FutureModulePage
-      title="Inbox"
-      phase={3}
-      description="Conversas, contatos, mensagens e tempo real."
-    />
-  )
+  return <InboxWorkspace />
 }
