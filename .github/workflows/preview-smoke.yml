@@ -23,7 +23,6 @@ jobs:
       AUTH_JWT_AUDIENCE: ${{ vars.AUTH_JWT_AUDIENCE }}
       WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
       NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
-      NODE_ENV: production
       OPENAPI_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +40,7 @@ jobs:
         env:
           PREVIEW_SMOKE_API_URL: http://127.0.0.1:3001
           PREVIEW_SMOKE_WORKER_URL: http://127.0.0.1:3002
+          NODE_ENV: production
         run: |
           set -euo pipefail
           pnpm --filter @nexo/api start >/tmp/nexo-preview-api.log 2>&1 & api_pid=$!
