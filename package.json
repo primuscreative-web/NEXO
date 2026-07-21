@@ -26,6 +26,8 @@
     "preview:cleanup": "node tooling/scripts/preview-seed.mjs --cleanup",
     "preview:demo:cleanup": "tsx tooling/scripts/preview-demo-seed.ts --cleanup",
     "preview:demo:seed": "tsx tooling/scripts/preview-demo-seed.ts",
+    "preview-runtime:build": "pnpm --filter @nexo/preview-runtime build",
+    "preview-runtime:start": "pnpm --filter @nexo/preview-runtime start",
     "preview:runtime-smoke": "tsx tooling/scripts/preview-runtime-smoke.ts",
     "preview:seed": "node tooling/scripts/preview-seed.mjs",
     "preview:smoke": "node tooling/scripts/preview-smoke.mjs",

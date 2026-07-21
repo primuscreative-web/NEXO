@@ -26,6 +26,12 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   #timer: NodeJS.Timeout | null = null
   #running = false
 
+  isReady(): boolean {
+    return Boolean(
+      this.#database && this.#publisher && this.#relay && this.#timer,
+    )
+  }
+
   onModuleInit(): void {
     if (!this.#databaseUrl || !this.#redisUrl) return
     this.#database = createDatabaseClient(this.#databaseUrl)

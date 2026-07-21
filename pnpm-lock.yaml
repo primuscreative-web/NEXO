@@ -216,6 +216,94 @@ importers:
         specifier: 'catalog:'
         version: 3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6)
 
+  apps/preview-runtime:
+    dependencies:
+      '@fastify/cookie':
+        specifier: 11.1.2
+        version: 11.1.2
+      '@fastify/helmet':
+        specifier: 13.1.0
+        version: 13.1.0
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@nestjs/throttler':
+        specifier: 6.5.0
+        version: 6.5.0(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28(@nestjs/common@11.1.28(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
+      '@nexo/api':
+        specifier: workspace:*
+        version: link:../api
+      '@nexo/cache':
+        specifier: workspace:*
+        version: link:../../packages/cache
+      '@nexo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@nexo/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@nexo/identity':
+        specifier: workspace:*
+        version: link:../../packages/contexts/identity
+      '@nexo/inbox':
+        specifier: workspace:*
+        version: link:../../packages/contexts/inbox
+      '@nexo/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@nexo/organization':
+        specifier: workspace:*
+        version: link:../../packages/contexts/organization
+      '@nexo/platform':
+        specifier: workspace:*
+        version: link:../../packages/contexts/platform
+      '@nexo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@nexo/worker':
+        specifier: workspace:*
+        version: link:../worker
+      class-transformer:
+        specifier: 0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: 0.15.1
+        version: 0.15.1
+      jose:
+        specifier: 6.2.3
+        version: 6.2.3
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 3.2.6
+        version: 3.2.6(vitest@3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6))
+      rimraf:
+        specifier: 6.0.1
+        version: 6.0.1
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.0(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.10)(tsx@4.20.6)(typescript@5.9.3)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.20.6
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6)
+
   apps/web:
     dependencies:
       '@nexo/organization':
