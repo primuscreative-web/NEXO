@@ -54,7 +54,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             method: 'POST',
           })
         }
-        router.push('/dashboard')
+        window.location.assign('/dashboard')
       } else if (mode === 'register') {
         await apiFetch('/v1/auth/register', {
           method: 'POST',
