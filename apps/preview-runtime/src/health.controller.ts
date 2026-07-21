@@ -30,6 +30,8 @@ interface StatusReply {
   status(code: number): StatusReply
 }
 
+let lastDegradedReadinessLogAt = 0
+
 @Public()
 @Controller('health')
 export class PreviewHealthController {
@@ -67,6 +69,7 @@ export class PreviewHealthController {
     })
 
     if (body.status === 'ok') return body
+    logDegradedReadiness(body)
     reply.status(503)
     return body
   }
@@ -142,4 +145,16 @@ function createReadinessBody(input: {
       ...(input.relay.detail ? { relay: input.relay.detail } : {}),
     },
   }
+}
+
+function logDegradedReadiness(body: PreviewReadinessBody): void {
+  const now = Date.now()
+  if (now - lastDegradedReadinessLogAt < 30_000) return
+  lastDegradedReadinessLogAt = now
+  process.stderr.write(
+    `[preview-runtime] readiness degraded ${JSON.stringify({
+      checks: body.checks,
+      details: body.details,
+    })}\n`,
+  )
 }
