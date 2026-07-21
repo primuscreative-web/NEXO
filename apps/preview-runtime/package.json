@@ -7,7 +7,7 @@
     "build": "tsup src/main.ts --format esm --clean",
     "clean": "rimraf dist coverage",
     "lint": "eslint src test",
-    "start": "node dist/main.js",
+    "start": "node --max-old-space-size=384 dist/main.js",
     "test": "vitest run",
     "test:unit": "vitest run",
     "typecheck": "tsc --noEmit"

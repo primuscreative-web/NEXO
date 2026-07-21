@@ -27,7 +27,7 @@
     "preview:demo:cleanup": "tsx tooling/scripts/preview-demo-seed.ts --cleanup",
     "preview:demo:seed": "tsx tooling/scripts/preview-demo-seed.ts",
     "preview-runtime:build": "turbo run build --filter=@nexo/preview-runtime",
-    "preview-runtime:start": "pnpm --filter @nexo/preview-runtime start",
+    "preview-runtime:start": "node --max-old-space-size=384 apps/preview-runtime/dist/main.js",
     "preview:runtime-smoke": "tsx tooling/scripts/preview-runtime-smoke.ts",
     "preview:seed": "node tooling/scripts/preview-seed.mjs",
     "preview:smoke": "node tooling/scripts/preview-smoke.mjs",
