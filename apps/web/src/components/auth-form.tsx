@@ -17,6 +17,10 @@ interface OrganizationAccess {
   }
 }
 
+interface RegisterResult {
+  emailVerificationRequired: boolean
+}
+
 const titles: Record<AuthMode, string> = {
   login: t('auth.title.login'),
   register: t('auth.title.register'),
@@ -56,7 +60,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         }
         window.location.assign('/dashboard')
       } else if (mode === 'register') {
-        await apiFetch('/v1/auth/register', {
+        const result = await apiFetch<RegisterResult>('/v1/auth/register', {
           method: 'POST',
           body: JSON.stringify({
             name: data.get('name'),
@@ -64,7 +68,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             password: data.get('password'),
           }),
         })
-        router.push('/verify-email')
+        router.push(
+          result.emailVerificationRequired ? '/verify-email' : '/login',
+        )
       } else if (mode === 'forgot') {
         await apiFetch('/v1/auth/forgot-password', {
           method: 'POST',
