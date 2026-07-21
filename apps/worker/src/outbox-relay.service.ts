@@ -34,15 +34,27 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (!this.#databaseUrl || !this.#redisUrl) return
-    this.#database = createDatabaseClient(this.#databaseUrl)
-    this.#publisher = new BullMqEventPublisher(this.#redisUrl)
-    this.#relay = new OutboxRelay(
-      new PostgresOutboxStore(this.#database),
-      this.#publisher,
-    )
-    this.#timer = setInterval(() => void this.#tick(), 1_000)
-    this.#timer.unref()
-    void this.#tick()
+    try {
+      this.#publisher = new BullMqEventPublisher(this.#redisUrl)
+      this.#database = createDatabaseClient(this.#databaseUrl)
+      this.#relay = new OutboxRelay(
+        new PostgresOutboxStore(this.#database),
+        this.#publisher,
+      )
+      this.#timer = setInterval(() => void this.#tick(), 1_000)
+      this.#timer.unref()
+      void this.#tick()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'relay startup'
+      process.stderr.write(
+        `[outbox] relay unavailable: ${sanitizeLogMessage(message)}\n`,
+      )
+      void this.#publisher?.close()
+      this.#publisher = null
+      void this.#database?.$disconnect()
+      this.#database = null
+      this.#relay = null
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -62,7 +74,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
         )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'relay failure'
-      process.stderr.write(`[outbox] ${message.replace(/[\r\n]/gu, ' ')}\n`)
+      process.stderr.write(`[outbox] ${sanitizeLogMessage(message)}\n`)
     } finally {
       this.#running = false
     }
@@ -152,7 +164,7 @@ export class BullMqEventPublisher implements IntegrationEventPublisher {
   readonly #queue: Queue<IntegrationEvent>
 
   constructor(redisUrl: string) {
-    const url = new URL(redisUrl)
+    const url = parseRedisUrl(redisUrl)
     this.#queue = new Queue<IntegrationEvent>(queueName, {
       connection: {
         host: url.hostname,
@@ -175,4 +187,39 @@ export class BullMqEventPublisher implements IntegrationEventPublisher {
   close(): Promise<void> {
     return this.#queue.close()
   }
+}
+
+function parseRedisUrl(redisUrl: string): URL {
+  const normalized = normalizeSecretUrl(redisUrl)
+  if (!normalized) throw new Error('REDIS_URL is empty')
+
+  let url: URL
+  try {
+    url = new URL(normalized)
+  } catch {
+    throw new Error('REDIS_URL is not a valid URL')
+  }
+
+  if (url.protocol !== 'rediss:')
+    throw new Error('REDIS_URL must use rediss://')
+  if (!url.hostname || !url.port || !url.username || !url.password)
+    throw new Error('REDIS_URL must include host, port, username and password')
+
+  return url
+}
+
+function normalizeSecretUrl(value: string): string {
+  const trimmed = value.trim()
+  const quote = trimmed.at(0)
+  if (
+    quote &&
+    (quote === '"' || quote === "'" || quote === '`') &&
+    trimmed.endsWith(quote)
+  )
+    return trimmed.slice(1, -1).trim()
+  return trimmed
+}
+
+function sanitizeLogMessage(message: string): string {
+  return message.replace(/[\r\n]/gu, ' ')
 }
