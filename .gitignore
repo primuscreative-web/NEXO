@@ -18,3 +18,5 @@ Thumbs.db
 .idea/
 .vscode/
 packages/database/src/generated/
+
+.vercel

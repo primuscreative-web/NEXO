@@ -152,7 +152,7 @@ async function main(): Promise<void> {
         [userId, email, name],
       )
       await client.query(
-        'INSERT INTO "identity_user_credentials" ("userId","passwordHash") VALUES ($1,$2)',
+        'INSERT INTO "identity_user_credentials" ("userId","passwordHash","updatedAt") VALUES ($1,$2,now())',
         [userId, passwordHash],
       )
       await client.query(
@@ -300,7 +300,14 @@ async function main(): Promise<void> {
   }
 }
 
-void main().catch(() => {
+void main().catch((error: unknown) => {
+  const detail =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'Unknown error'
   process.stderr.write('Preview demo seed failed.\n')
+  process.stderr.write(`${detail}\n`)
   process.exitCode = 1
 })
