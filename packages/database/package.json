@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "pnpm prisma:generate && tsup src/index.ts --format esm --dts --clean",
     "clean": "rimraf dist coverage src/generated",
     "lint": "eslint src prisma.config.ts",
     "prisma:generate": "prisma generate",
@@ -19,7 +19,7 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:unit": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "pnpm prisma:generate && tsc --noEmit"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.8.0",
