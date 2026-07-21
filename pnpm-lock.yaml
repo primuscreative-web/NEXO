@@ -110,7 +110,7 @@ importers:
         specifier: 3.6.2
         version: 3.6.2
       tsx:
-        specifier: 4.20.6
+        specifier: 'catalog:'
         version: 4.20.6
       turbo:
         specifier: 2.9.14
