@@ -1818,7 +1818,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     const pageItems = hasMore ? items.slice(0, limit) : items
     return {
       items: pageItems,
-      nextCursor: hasMore ? (pageItems.at(-1)?.id ?? null) : null,
+      nextCursor: hasMore ? (pageItems[pageItems.length - 1]?.id ?? null) : null,
     }
   }
 
