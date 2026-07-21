@@ -231,9 +231,10 @@ export class InboxService {
     context: RequestContext,
   ) {
     const org = this.#org(principal)
+    const hasInput = (key: 'assigneeMembershipId' | 'teamId') =>
+      Object.prototype.hasOwnProperty.call(input, key)
     const assignmentChange =
-      Object.hasOwn(input, 'assigneeMembershipId') ||
-      Object.hasOwn(input, 'teamId')
+      hasInput('assigneeMembershipId') || hasInput('teamId')
     return this.#allowed(
       principal,
       assignmentChange ? 'conversation.assign' : 'conversation.update',
@@ -263,10 +264,10 @@ export class InboxService {
           where: { id },
           data: {
             ...(input.status ? { status: input.status as never } : {}),
-            ...(Object.hasOwn(input, 'assigneeMembershipId')
+            ...(hasInput('assigneeMembershipId')
               ? { assigneeMembershipId: input.assigneeMembershipId ?? null }
               : {}),
-            ...(Object.hasOwn(input, 'teamId')
+            ...(hasInput('teamId')
               ? { teamId: input.teamId ?? null }
               : {}),
           },
@@ -283,7 +284,7 @@ export class InboxService {
           id,
           {
             ...(input.status ? { status: input.status } : {}),
-            ...(Object.hasOwn(input, 'assigneeMembershipId')
+            ...(hasInput('assigneeMembershipId')
               ? { assigneeMembershipId: input.assigneeMembershipId }
               : {}),
           },
