@@ -2,10 +2,20 @@ import type { NextConfig } from 'next'
 import path from 'node:path'
 
 const workspaceRoot = path.resolve(process.cwd(), '../..')
+const publicApiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+const backendApiUrl = process.env.NEXO_BACKEND_URL ?? publicApiUrl
+
 const apiOrigin = (() => {
   try {
-    return new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
-      .origin
+    return new URL(publicApiUrl, 'http://localhost').origin
+  } catch {
+    return 'http://localhost:3001'
+  }
+})()
+
+const backendApiOrigin = (() => {
+  try {
+    return new URL(backendApiUrl).origin
   } catch {
     return 'http://localhost:3001'
   }
@@ -42,6 +52,14 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=()',
           },
         ],
+      },
+    ]
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendApiOrigin}/:path*`,
       },
     ]
   },
