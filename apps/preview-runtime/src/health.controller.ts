@@ -4,11 +4,11 @@ import {
   Inject,
   ServiceUnavailableException,
 } from '@nestjs/common'
+import { Public } from '@nexo/api/preview'
 import { RedisCacheHealthAdapter } from '@nexo/cache'
 import { PostgresDatabaseHealthAdapter } from '@nexo/database'
 import { createHealthSnapshot } from '@nexo/shared'
-import { OutboxRelayService } from '@nexo/worker/src/outbox-relay.service.js'
-import { Public } from '@nexo/api/src/phase1/auth.guard.js'
+import { OutboxRelayService } from '@nexo/worker/preview'
 
 @Public()
 @Controller('health')

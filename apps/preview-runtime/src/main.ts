@@ -7,10 +7,12 @@ import {
   FastifyAdapter,
   type NestFastifyApplication,
 } from '@nestjs/platform-fastify'
+import {
+  Phase1ExceptionFilter,
+  isTrustedMutationOrigin,
+} from '@nexo/api/preview'
 import { parseServiceEnvironment } from '@nexo/config'
 import { createLogger } from '@nexo/observability'
-import { Phase1ExceptionFilter } from '@nexo/api/src/phase1/phase1-exception.filter.js'
-import { isTrustedMutationOrigin } from '@nexo/api/src/phase1/request-origin.js'
 import {
   assertPreviewRuntimeEnvironment,
   previewRuntimePort,

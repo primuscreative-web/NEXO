@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common'
 import { createHealthSnapshot } from '@nexo/shared'
-import { Public } from '@nexo/api/src/phase1/auth.guard.js'
+import { Public } from '@nexo/api/preview'
 
 @Public()
 @Controller('webhooks/health')

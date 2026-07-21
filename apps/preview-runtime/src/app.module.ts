@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
-import { AccessTokenGuard } from '@nexo/api/src/phase1/auth.guard.js'
-import { Phase1Controller } from '@nexo/api/src/phase1/phase1.controller.js'
-import { Phase1Service } from '@nexo/api/src/phase1/phase1.service.js'
-import { InboxController } from '@nexo/api/src/inbox/inbox.controller.js'
-import { InboxService } from '@nexo/api/src/inbox/inbox.service.js'
-import { OutboxRelayService } from '@nexo/worker/src/outbox-relay.service.js'
+import {
+  AccessTokenGuard,
+  InboxController,
+  InboxService,
+  Phase1Controller,
+  Phase1Service,
+} from '@nexo/api/preview'
+import { OutboxRelayService } from '@nexo/worker/preview'
 import { PreviewHealthController } from './health.controller.js'
 import { PreviewWebhookHealthController } from './webhook-health.controller.js'
 

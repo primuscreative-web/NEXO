@@ -267,9 +267,7 @@ export class InboxService {
             ...(hasInput('assigneeMembershipId')
               ? { assigneeMembershipId: input.assigneeMembershipId ?? null }
               : {}),
-            ...(hasInput('teamId')
-              ? { teamId: input.teamId ?? null }
-              : {}),
+            ...(hasInput('teamId') ? { teamId: input.teamId ?? null } : {}),
           },
         })
         await this.#outbox(
