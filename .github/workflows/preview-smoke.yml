@@ -1,5 +1,7 @@
 name: Preview smoke
 
+# Kept on main exclusively so GitHub can expose its manual dispatcher.
+
 on:
   workflow_dispatch:
     inputs:
