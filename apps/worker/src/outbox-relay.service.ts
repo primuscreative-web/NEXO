@@ -24,6 +24,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   #publisher: BullMqEventPublisher | null = null
   #relay: OutboxRelay | null = null
   #timer: NodeJS.Timeout | null = null
+  #startupError: string | null = null
   #running = false
 
   isReady(): boolean {
@@ -32,8 +33,27 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
     )
   }
 
+  status(): {
+    readonly configured: boolean
+    readonly healthy: boolean
+    readonly reason?: string
+  } {
+    const configured = Boolean(this.#databaseUrl && this.#redisUrl)
+    const healthy = this.isReady()
+    return {
+      configured,
+      healthy,
+      ...(!healthy
+        ? { reason: this.#startupError ?? 'relay is not initialized' }
+        : {}),
+    }
+  }
+
   onModuleInit(): void {
-    if (!this.#databaseUrl || !this.#redisUrl) return
+    if (!this.#databaseUrl || !this.#redisUrl) {
+      this.#startupError = 'missing required relay configuration'
+      return
+    }
     try {
       this.#publisher = new BullMqEventPublisher(this.#redisUrl)
       this.#database = createDatabaseClient(this.#databaseUrl)
@@ -43,11 +63,13 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       )
       this.#timer = setInterval(() => void this.#tick(), 1_000)
       this.#timer.unref()
+      this.#startupError = null
       void this.#tick()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'relay startup'
+      this.#startupError = sanitizeLogMessage(message)
       process.stderr.write(
-        `[outbox] relay unavailable: ${sanitizeLogMessage(message)}\n`,
+        `[outbox] relay unavailable: ${this.#startupError}\n`,
       )
       void this.#publisher?.close()
       this.#publisher = null

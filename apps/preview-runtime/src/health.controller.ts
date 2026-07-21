@@ -1,14 +1,34 @@
-import {
-  Controller,
-  Get,
-  Inject,
-  ServiceUnavailableException,
-} from '@nestjs/common'
+import { Controller, Get, Inject, Res } from '@nestjs/common'
 import { Public } from '@nexo/api/preview'
 import { RedisCacheHealthAdapter } from '@nexo/cache'
 import { PostgresDatabaseHealthAdapter } from '@nexo/database'
 import { createHealthSnapshot } from '@nexo/shared'
 import { OutboxRelayService } from '@nexo/worker/preview'
+
+type DependencyCheckStatus = 'ok' | 'failed' | 'missing'
+
+interface PreviewReadinessBody {
+  readonly service: 'preview-runtime'
+  readonly status: 'ok' | 'degraded'
+  readonly timestamp: string
+  readonly uptimeSeconds: number
+  readonly checks: {
+    readonly api: DependencyCheckStatus
+    readonly database: DependencyCheckStatus
+    readonly redis: DependencyCheckStatus
+    readonly worker: DependencyCheckStatus
+    readonly relay: DependencyCheckStatus
+  }
+  readonly details: {
+    readonly database?: string
+    readonly redis?: string
+    readonly relay?: string
+  }
+}
+
+interface StatusReply {
+  status(code: number): StatusReply
+}
 
 @Public()
 @Controller('health')
@@ -24,39 +44,102 @@ export class PreviewHealthController {
   }
 
   @Get('ready')
-  async ready() {
+  async ready(@Res({ passthrough: true }) reply: StatusReply) {
     const databaseUrl = process.env.DATABASE_URL
     const redisUrl = process.env.REDIS_URL
-    if (!databaseUrl || !redisUrl)
-      throw new ServiceUnavailableException(
-        'Required dependencies are not configured',
-      )
+    const [database, redis] = await Promise.all([
+      checkDatabase(databaseUrl),
+      checkRedis(redisUrl),
+    ])
+    const relay = this.relay.status()
+    const relayStatus = relay.healthy
+      ? 'ok'
+      : relay.configured
+        ? 'failed'
+        : 'missing'
+    const body = createReadinessBody({
+      database,
+      redis,
+      relay: {
+        status: relayStatus,
+        ...(relay.reason ? { detail: relay.reason } : {}),
+      },
+    })
 
+    if (body.status === 'ok') return body
+    reply.status(503)
+    return body
+  }
+}
+
+async function checkDatabase(databaseUrl: string | undefined): Promise<{
+  readonly status: DependencyCheckStatus
+  readonly detail?: string
+}> {
+  if (!databaseUrl) return { status: 'missing', detail: 'DATABASE_URL missing' }
+  try {
     const database = new PostgresDatabaseHealthAdapter(databaseUrl)
-    const cache = new RedisCacheHealthAdapter(redisUrl)
+    const result = await database.check()
+    return result.healthy
+      ? { status: 'ok' }
+      : { status: 'failed', detail: 'database health check returned false' }
+  } catch {
+    return { status: 'failed', detail: 'database health check failed' }
+  }
+}
 
-    try {
-      const [databaseHealth, redisHealthy] = await Promise.all([
-        database.check(),
-        cache.check(),
-      ])
-      const workerHealthy = this.relay.isReady()
-      if (!databaseHealth.healthy || !redisHealthy || !workerHealthy)
-        throw new Error('Preview runtime dependency unavailable')
-      return {
-        ...createHealthSnapshot('preview-runtime'),
-        dependencies: {
-          api: true,
-          database: databaseHealth.healthy,
-          redis: redisHealthy,
-          worker: workerHealthy,
-          relay: workerHealthy,
-        },
-      }
-    } catch {
-      throw new ServiceUnavailableException(
-        'A required dependency is unavailable',
-      )
-    }
+async function checkRedis(redisUrl: string | undefined): Promise<{
+  readonly status: DependencyCheckStatus
+  readonly detail?: string
+}> {
+  if (!redisUrl) return { status: 'missing', detail: 'REDIS_URL missing' }
+  try {
+    const cache = new RedisCacheHealthAdapter(redisUrl)
+    const healthy = await cache.check()
+    return healthy
+      ? { status: 'ok' }
+      : { status: 'failed', detail: 'redis health check returned false' }
+  } catch {
+    return { status: 'failed', detail: 'redis health check failed' }
+  }
+}
+
+function createReadinessBody(input: {
+  readonly database: {
+    readonly status: DependencyCheckStatus
+    readonly detail?: string
+  }
+  readonly redis: {
+    readonly status: DependencyCheckStatus
+    readonly detail?: string
+  }
+  readonly relay: {
+    readonly status: DependencyCheckStatus
+    readonly detail?: string
+  }
+}): PreviewReadinessBody {
+  const snapshot = createHealthSnapshot('preview-runtime')
+  const workerStatus = input.relay.status
+  const degraded =
+    input.database.status !== 'ok' ||
+    input.redis.status !== 'ok' ||
+    input.relay.status !== 'ok'
+
+  return {
+    ...snapshot,
+    service: 'preview-runtime',
+    status: degraded ? 'degraded' : 'ok',
+    checks: {
+      api: 'ok',
+      database: input.database.status,
+      redis: input.redis.status,
+      worker: workerStatus,
+      relay: input.relay.status,
+    },
+    details: {
+      ...(input.database.detail ? { database: input.database.detail } : {}),
+      ...(input.redis.detail ? { redis: input.redis.detail } : {}),
+      ...(input.relay.detail ? { relay: input.relay.detail } : {}),
+    },
   }
 }
