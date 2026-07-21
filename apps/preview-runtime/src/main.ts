@@ -42,8 +42,16 @@ async function bootstrap(): Promise<void> {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
+  const isAllowedOrigin = (origin: string): boolean =>
+    allowedOrigins.includes(origin) || isVercelNexoPreviewOrigin(origin)
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, false)
+        return
+      }
+      callback(null, isAllowedOrigin(origin) ? origin : false)
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   })
@@ -55,7 +63,10 @@ async function bootstrap(): Promise<void> {
         !isTrustedMutationOrigin({
           method: request.method,
           ...(request.headers.origin ? { origin: request.headers.origin } : {}),
-          allowedOrigins,
+          allowedOrigins:
+            request.headers.origin && isAllowedOrigin(request.headers.origin)
+              ? [...allowedOrigins, request.headers.origin]
+              : allowedOrigins,
         })
       ) {
         reply.code(403).send({
@@ -81,6 +92,20 @@ async function bootstrap(): Promise<void> {
   const port = previewRuntimePort(process.env)
   await app.listen(port, '0.0.0.0')
   logger.info({ port }, 'preview runtime started')
+}
+
+function isVercelNexoPreviewOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin)
+    return (
+      url.protocol === 'https:' &&
+      /^nexo-[a-z0-9-]+-primuscreative-webs-projects\.vercel\.app$/u.test(
+        url.hostname,
+      )
+    )
+  } catch {
+    return false
+  }
 }
 
 bootstrap().catch((error: unknown) => {
