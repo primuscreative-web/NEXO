@@ -84,7 +84,9 @@ const dummyPasswordHash =
 export function isEmailVerificationRequired(
   environment: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return environment.AUTH_EMAIL_VERIFICATION_REQUIRED !== 'false'
+  if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'true') return true
+  if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'false') return false
+  return environment.APP_ENV !== 'preview' && environment.NODE_ENV !== 'development'
 }
 
 @Injectable()

@@ -6,7 +6,12 @@ describe('email verification feature flag', () => {
     expect(isEmailVerificationRequired({})).toBe(true)
   })
 
-  it('disables email verification only when explicitly set to false', () => {
+  it('disables email verification in preview and development by default', () => {
+    expect(isEmailVerificationRequired({ APP_ENV: 'preview' })).toBe(false)
+    expect(isEmailVerificationRequired({ NODE_ENV: 'development' })).toBe(false)
+  })
+
+  it('allows the explicit flag to override the environment default', () => {
     expect(
       isEmailVerificationRequired({
         AUTH_EMAIL_VERIFICATION_REQUIRED: 'false',
@@ -15,6 +20,7 @@ describe('email verification feature flag', () => {
     expect(
       isEmailVerificationRequired({
         AUTH_EMAIL_VERIFICATION_REQUIRED: 'true',
+        APP_ENV: 'preview',
       }),
     ).toBe(true)
   })
