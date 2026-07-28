@@ -43,7 +43,10 @@ export async function installMockSession(page: Page): Promise<void> {
       await fulfill(route, 204, undefined)
       return
     }
-    const path = new URL(request.url()).pathname.replace(/^\/api(?=\/v1\/)/u, '')
+    const path = new URL(request.url()).pathname.replace(
+      /^\/api(?=\/v1\/)/u,
+      '',
+    )
     if (path === '/v1/auth/me') {
       await fulfill(route, 200, {
         id: 'user-visual-regression',
