@@ -37,13 +37,13 @@ export async function installMockSession(page: Page): Promise<void> {
       sameSite: 'Lax',
     },
   ])
-  await page.route('http://localhost:3001/v1/**', async (route) => {
+  const handleApiRoute = async (route: Route) => {
     const request = route.request()
     if (request.method() === 'OPTIONS') {
       await fulfill(route, 204, undefined)
       return
     }
-    const path = new URL(request.url()).pathname
+    const path = new URL(request.url()).pathname.replace(/^\/api(?=\/v1\/)/u, '')
     if (path === '/v1/auth/me') {
       await fulfill(route, 200, {
         id: 'user-visual-regression',
@@ -130,7 +130,9 @@ export async function installMockSession(page: Page): Promise<void> {
       return
     }
     await fulfill(route, 200, { items: [], nextCursor: null })
-  })
+  }
+  await page.route('http://localhost:3001/v1/**', handleApiRoute)
+  await page.route('http://127.0.0.1:3000/api/v1/**', handleApiRoute)
 }
 
 async function fulfill(
