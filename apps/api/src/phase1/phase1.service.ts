@@ -10,6 +10,7 @@ import {
 import {
   createDatabaseClient,
   type DatabaseClient,
+  type DatabaseJsonInput,
   type DatabaseTransaction,
   withTenant,
   withUser,
@@ -1779,13 +1780,23 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           ...(context.userAgent ? { userAgent: context.userAgent } : {}),
           ...(context.traceId ? { traceId: context.traceId } : {}),
           ...(input.metadata
-            ? { metadata: sanitizeAuditMetadata(input.metadata) as object }
+            ? {
+                metadata: sanitizeAuditMetadata(
+                  input.metadata,
+                ) as DatabaseJsonInput,
+              }
             : {}),
           ...(input.before
-            ? { before: sanitizeAuditMetadata(input.before) as object }
+            ? {
+                before: sanitizeAuditMetadata(
+                  input.before,
+                ) as DatabaseJsonInput,
+              }
             : {}),
           ...(input.after
-            ? { after: sanitizeAuditMetadata(input.after) as object }
+            ? {
+                after: sanitizeAuditMetadata(input.after) as DatabaseJsonInput,
+              }
             : {}),
         },
       ],
@@ -1821,7 +1832,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         ...(input.aggregateVersion !== undefined
           ? { aggregateVersion: input.aggregateVersion }
           : {}),
-        payload: input.payload as object,
+        payload: input.payload as DatabaseJsonInput,
       },
     })
   }

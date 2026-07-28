@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from './generated/client/client.js'
+import { PrismaClient, type Prisma } from './generated/client/client.js'
 
 const { Pool } = pg
 
@@ -37,6 +37,7 @@ export async function checkDatabaseHealth(
 }
 
 export type DatabaseClient = PrismaClient
+export type DatabaseJsonInput = Prisma.InputJsonValue
 export type DatabaseTransaction = Parameters<
   Parameters<PrismaClient['$transaction']>[0]
 >[0]
