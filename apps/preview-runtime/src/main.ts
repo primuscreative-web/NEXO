@@ -18,6 +18,7 @@ import {
   previewRuntimePort,
 } from './environment.js'
 import { PreviewRuntimeModule } from './app.module.js'
+import { isAllowedPreviewOrigin } from './preview-origin.js'
 
 async function bootstrap(): Promise<void> {
   assertPreviewRuntimeEnvironment(process.env)
@@ -42,15 +43,16 @@ async function bootstrap(): Promise<void> {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
-  const isAllowedOrigin = (origin: string): boolean =>
-    allowedOrigins.includes(origin) || isVercelNexoPreviewOrigin(origin)
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
         callback(null, false)
         return
       }
-      callback(null, isAllowedOrigin(origin) ? origin : false)
+      callback(
+        null,
+        isAllowedPreviewOrigin(origin, allowedOrigins) ? origin : false,
+      )
     },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
@@ -64,7 +66,8 @@ async function bootstrap(): Promise<void> {
           method: request.method,
           ...(request.headers.origin ? { origin: request.headers.origin } : {}),
           allowedOrigins:
-            request.headers.origin && isAllowedOrigin(request.headers.origin)
+            request.headers.origin &&
+            isAllowedPreviewOrigin(request.headers.origin, allowedOrigins)
               ? [...allowedOrigins, request.headers.origin]
               : allowedOrigins,
         })
@@ -92,20 +95,6 @@ async function bootstrap(): Promise<void> {
   const port = previewRuntimePort(process.env)
   await app.listen(port, '0.0.0.0')
   logger.info({ port }, 'preview runtime started')
-}
-
-function isVercelNexoPreviewOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin)
-    return (
-      url.protocol === 'https:' &&
-      /^nexo-[a-z0-9-]+-primuscreative-webs-projects\.vercel\.app$/u.test(
-        url.hostname,
-      )
-    )
-  } catch {
-    return false
-  }
 }
 
 bootstrap().catch((error: unknown) => {

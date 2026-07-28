@@ -55,11 +55,14 @@ export function withTenant<T>(
   context: TenantContext,
   operation: (transaction: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-  return client.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${context.userId}, true)`
-    await transaction.$executeRaw`SELECT set_config('app.current_organization_id', ${context.organizationId}, true)`
-    return operation(transaction)
-  })
+  return client.$transaction(
+    async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${context.userId}, true)`
+      await transaction.$executeRaw`SELECT set_config('app.current_organization_id', ${context.organizationId}, true)`
+      return operation(transaction)
+    },
+    { maxWait: 15_000, timeout: 60_000 },
+  )
 }
 
 export function withUser<T>(
@@ -67,8 +70,11 @@ export function withUser<T>(
   userId: string,
   operation: (transaction: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-  return client.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, true)`
-    return operation(transaction)
-  })
+  return client.$transaction(
+    async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, true)`
+      return operation(transaction)
+    },
+    { maxWait: 15_000, timeout: 60_000 },
+  )
 }

@@ -12,6 +12,7 @@ const validEnvironment: NodeJS.ProcessEnv = {
   AUTH_JWT_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----',
   AUTH_JWT_PUBLIC_KEY: '-----BEGIN PUBLIC KEY-----',
   WEB_ORIGIN: 'https://nexo-web-preview.example.test',
+  PREVIEW_MAILBOX_ACCESS_KEY: 'preview-mailbox-test-key-32-characters',
 }
 
 describe('preview runtime environment', () => {
@@ -32,5 +33,14 @@ describe('preview runtime environment', () => {
 
   it('uses the platform PORT for composed hosting', () => {
     expect(previewRuntimePort({ PORT: '4321', API_PORT: '3001' })).toBe(4321)
+  })
+
+  it('requires a strong mailbox capture key outside tests', () => {
+    expect(() =>
+      assertPreviewRuntimeEnvironment({
+        ...validEnvironment,
+        PREVIEW_MAILBOX_ACCESS_KEY: 'short',
+      }),
+    ).toThrow('PREVIEW_MAILBOX_ACCESS_KEY')
   })
 })

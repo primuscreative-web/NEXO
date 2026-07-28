@@ -15,6 +15,11 @@ export function assertPreviewRuntimeEnvironment(
   if (!environment.AUTH_JWT_PUBLIC_KEY)
     throw new Error('Missing AUTH_JWT_PUBLIC_KEY')
   if (!environment.WEB_ORIGIN) throw new Error('Missing WEB_ORIGIN')
+  if (
+    !environment.PREVIEW_MAILBOX_ACCESS_KEY ||
+    environment.PREVIEW_MAILBOX_ACCESS_KEY.length < 32
+  )
+    throw new Error('Missing or weak PREVIEW_MAILBOX_ACCESS_KEY')
 }
 
 export function previewRuntimePort(environment: NodeJS.ProcessEnv): number {

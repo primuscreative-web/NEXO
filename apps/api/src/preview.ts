@@ -1,7 +1,7 @@
 export { AccessTokenGuard, Public } from './phase1/auth.guard.js'
 export { Phase1ExceptionFilter } from './phase1/phase1-exception.filter.js'
 export { Phase1Controller } from './phase1/phase1.controller.js'
-export { Phase1Service } from './phase1/phase1.service.js'
+export { Phase1Error, Phase1Service } from './phase1/phase1.service.js'
 export { isTrustedMutationOrigin } from './phase1/request-origin.js'
 export { InboxController } from './inbox/inbox.controller.js'
 export { InboxService } from './inbox/inbox.service.js'

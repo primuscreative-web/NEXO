@@ -26,3 +26,17 @@ No account, project, secret, deployment, or DNS record is created by this reposi
 ## Future decisions
 
 Storage remains behind the existing S3-compatible configuration. WhatsApp, AI, email, payments, analytics, and full observability require product approval, provider selection, and dedicated implementation work before they become runtime dependencies.
+
+## Preview authentication stability
+
+The public Web uses the same-origin `/api` proxy and forwards requests to the
+configured Preview runtime. Production builds never fall back to localhost.
+Authentication requests include credentials and allow up to 120 seconds for a
+Render free-instance cold start; transport failures are converted to safe
+Portuguese messages instead of exposing browser errors.
+
+Password recovery uses the notification port. The composed Preview runtime
+also exposes a capture endpoint guarded by `PREVIEW_MAILBOX_ACCESS_KEY`, a
+minimum 32-character secret that is mandatory outside tests. The endpoint is
+available only when `APP_ENV=preview`; production fails closed and never
+exposes captured reset links.

@@ -86,7 +86,9 @@ export function isEmailVerificationRequired(
 ): boolean {
   if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'true') return true
   if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'false') return false
-  return environment.APP_ENV !== 'preview' && environment.NODE_ENV !== 'development'
+  return (
+    environment.APP_ENV !== 'preview' && environment.NODE_ENV !== 'development'
+  )
 }
 
 @Injectable()

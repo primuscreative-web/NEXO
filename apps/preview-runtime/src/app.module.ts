@@ -10,6 +10,7 @@ import {
 } from '@nexo/api/preview'
 import { OutboxRelayService } from '@nexo/worker/preview'
 import { PreviewHealthController } from './health.controller.js'
+import { PreviewMailboxController } from './preview-mailbox.controller.js'
 import { PreviewWebhookHealthController } from './webhook-health.controller.js'
 
 @Module({
@@ -17,6 +18,7 @@ import { PreviewWebhookHealthController } from './webhook-health.controller.js'
   controllers: [
     PreviewHealthController,
     PreviewWebhookHealthController,
+    PreviewMailboxController,
     Phase1Controller,
     InboxController,
   ],

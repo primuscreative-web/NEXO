@@ -5,7 +5,7 @@ import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, normalizeApiError } from '../lib/api'
 import { t } from '../lib/i18n'
 import { ThemeToggle } from './theme-toggle'
 
@@ -96,7 +96,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         router.push('/login?verified=1')
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('auth.unexpected'))
+      setError(normalizeApiError(cause).message)
     } finally {
       setPending(false)
     }
@@ -231,7 +231,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             <Button
               block
               loading={pending}
-              loadingLabel={t('auth.processing')}
+              loadingLabel={t('auth.connecting')}
               type="submit"
             >
               {mode === 'login' ? t('auth.enter') : t('auth.continue')}
