@@ -1,11 +1,5 @@
-import { FutureModulePage } from '../../../components/future-module-page'
+import { IntegrationsCatalog } from '../../../components/integrations-catalog'
 
 export default function IntegrationsPage() {
-  return (
-    <FutureModulePage
-      title="Integrações"
-      phase={4}
-      description="Canais oficiais e conexões externas substituíveis."
-    />
-  )
+  return <IntegrationsCatalog />
 }

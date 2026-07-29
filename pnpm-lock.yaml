@@ -270,6 +270,9 @@ importers:
       '@nexo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@nexo/webhook-gateway':
+        specifier: workspace:*
+        version: link:../webhook-gateway
       '@nexo/worker':
         specifier: workspace:*
         version: link:../worker

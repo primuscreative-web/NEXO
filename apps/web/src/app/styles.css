@@ -532,6 +532,64 @@
     color: var(--nexo-foreground-muted);
   }
 
+  .nexo-integration-card {
+    display: grid;
+    align-content: start;
+    gap: var(--nexo-space-3);
+  }
+
+  .nexo-integration-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nexo-space-3);
+  }
+
+  .nexo-integration-card__header > svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--nexo-primary);
+  }
+
+  .nexo-integration-card h2,
+  .nexo-integration-card p {
+    margin: 0;
+  }
+
+  .nexo-integration-card p,
+  .nexo-integration-checked-at {
+    color: var(--nexo-foreground-muted);
+  }
+
+  .nexo-integration-evidence {
+    display: grid;
+    gap: var(--nexo-space-2);
+    margin: 0;
+  }
+
+  .nexo-integration-evidence > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--nexo-space-3);
+    border-top: 1px solid var(--nexo-border);
+    padding-top: var(--nexo-space-2);
+  }
+
+  .nexo-integration-evidence dt,
+  .nexo-integration-evidence dd {
+    margin: 0;
+    font-size: var(--nexo-text-sm);
+  }
+
+  .nexo-integration-evidence dd {
+    font-weight: 700;
+  }
+
+  .nexo-integration-checked-at {
+    margin: var(--nexo-space-4) 0 0;
+    font-size: var(--nexo-text-sm);
+  }
+
   .nexo-action-list,
   .nexo-lab-row {
     display: flex;

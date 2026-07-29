@@ -7,13 +7,21 @@ import { Phase1Controller } from './phase1/phase1.controller.js'
 import { Phase1Service } from './phase1/phase1.service.js'
 import { InboxController } from './inbox/inbox.controller.js'
 import { InboxService } from './inbox/inbox.service.js'
+import { IntegrationsController } from './integrations/integrations.controller.js'
+import { IntegrationsService } from './integrations/integrations.service.js'
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])],
-  controllers: [HealthController, Phase1Controller, InboxController],
+  controllers: [
+    HealthController,
+    Phase1Controller,
+    InboxController,
+    IntegrationsController,
+  ],
   providers: [
     Phase1Service,
     InboxService,
+    IntegrationsService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AccessTokenGuard },
   ],

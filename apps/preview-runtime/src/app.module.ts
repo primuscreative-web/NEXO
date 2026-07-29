@@ -5,11 +5,15 @@ import {
   AccessTokenGuard,
   InboxController,
   InboxService,
+  IntegrationsController,
+  IntegrationsService,
   Phase1Controller,
   Phase1Service,
 } from '@nexo/api/preview'
 import { OutboxRelayService } from '@nexo/worker/preview'
+import { MetaWebhookService } from '@nexo/webhook-gateway/preview'
 import { PreviewHealthController } from './health.controller.js'
+import { PreviewMetaWebhookController } from './meta-webhook.controller.js'
 import { PreviewMailboxController } from './preview-mailbox.controller.js'
 import { PreviewWebhookHealthController } from './webhook-health.controller.js'
 
@@ -18,14 +22,18 @@ import { PreviewWebhookHealthController } from './webhook-health.controller.js'
   controllers: [
     PreviewHealthController,
     PreviewWebhookHealthController,
+    PreviewMetaWebhookController,
     PreviewMailboxController,
     Phase1Controller,
     InboxController,
+    IntegrationsController,
   ],
   providers: [
     Phase1Service,
     InboxService,
+    IntegrationsService,
     OutboxRelayService,
+    MetaWebhookService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AccessTokenGuard },
   ],

@@ -27,10 +27,26 @@ async function bootstrap(): Promise<void> {
     level: environment.LOG_LEVEL,
     service: 'preview-runtime',
   })
+  const adapter = new FastifyAdapter({ maxParamLength: 256 })
+  adapter
+    .getInstance()
+    .addContentTypeParser(
+      'application/json',
+      { parseAs: 'buffer' },
+      (request, body, done) => {
+        const rawBody = Buffer.isBuffer(body) ? body : Buffer.from(body)
+        ;(request as typeof request & { rawBody: Buffer }).rawBody = rawBody
+        try {
+          done(null, JSON.parse(rawBody.toString('utf8')))
+        } catch (error) {
+          done(error as Error)
+        }
+      },
+    )
   const app = await NestFactory.create<NestFastifyApplication>(
     PreviewRuntimeModule,
-    new FastifyAdapter({ maxParamLength: 256 }),
-    { logger: false },
+    adapter,
+    { bodyParser: false, logger: false },
   )
 
   app.enableShutdownHooks()
