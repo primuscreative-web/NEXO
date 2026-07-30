@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common'
 import { Public } from '@nexo/api/preview'
 import { MetaWebhookService } from '@nexo/webhook-gateway/preview'
+import { WhatsAppWebhookProcessor } from './whatsapp-webhook.processor.js'
 
 interface RawBodyRequest {
   rawBody?: Buffer
@@ -18,7 +19,10 @@ interface RawBodyRequest {
 @Public()
 @Controller('webhooks/meta')
 export class PreviewMetaWebhookController {
-  constructor(private readonly webhooks: MetaWebhookService) {}
+  constructor(
+    private readonly webhooks: MetaWebhookService,
+    private readonly whatsapp: WhatsAppWebhookProcessor,
+  ) {}
 
   @Get()
   verify(
@@ -37,13 +41,15 @@ export class PreviewMetaWebhookController {
 
   @Post()
   @HttpCode(200)
-  receive(
+  async receive(
     @Req() request: RawBodyRequest,
     @Headers('x-hub-signature-256') signature?: string,
   ) {
     if (!request.rawBody) throw new ForbiddenException()
     try {
-      return this.webhooks.accept(request.rawBody, signature)
+      const result = this.webhooks.accept(request.rawBody, signature)
+      if (!result.duplicate) await this.whatsapp.process(result.payload)
+      return { accepted: result.accepted, duplicate: result.duplicate }
     } catch {
       throw new ForbiddenException()
     }

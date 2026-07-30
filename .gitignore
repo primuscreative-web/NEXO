@@ -21,3 +21,4 @@ Thumbs.db
 packages/database/src/generated/
 
 .vercel
+.playwright-cli/

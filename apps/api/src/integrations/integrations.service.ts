@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { readWhatsAppCloudConfig, WhatsAppCloudApiClient } from '@nexo/whatsapp'
 
 export const integrationStatuses = [
   'not_configured',
@@ -45,15 +46,38 @@ const prototypeOnly = [
 
 @Injectable()
 export class IntegrationsService {
-  list(): { items: readonly IntegrationDiagnostic[]; checkedAt: string } {
+  async list(): Promise<{
+    items: readonly IntegrationDiagnostic[]
+    checkedAt: string
+  }> {
     const whatsappCredentialPresent = this.#hasAll([
       'META_APP_ID',
       'META_APP_SECRET',
       'META_WHATSAPP_ACCESS_TOKEN',
       'META_WHATSAPP_PHONE_NUMBER_ID',
       'META_WHATSAPP_BUSINESS_ACCOUNT_ID',
+      'META_WHATSAPP_ORGANIZATION_ID',
+      'META_GRAPH_API_VERSION',
       'META_WEBHOOK_VERIFY_TOKEN',
     ])
+    const whatsappConfig = readWhatsAppCloudConfig()
+    const whatsappDiagnostic =
+      whatsappCredentialPresent && whatsappConfig
+        ? await new WhatsAppCloudApiClient(whatsappConfig).diagnose()
+        : null
+    const whatsappProviderReachable = Boolean(whatsappDiagnostic?.reachable)
+    const whatsappWebhookHealthy = Boolean(
+      whatsappDiagnostic?.reachable && whatsappDiagnostic.webhookSubscribed,
+    )
+    const whatsappStatus: IntegrationStatus = !whatsappCredentialPresent
+      ? 'not_configured'
+      : whatsappDiagnostic?.reason === 'unauthorized'
+        ? 'token_expired'
+        : whatsappProviderReachable && whatsappWebhookHealthy
+          ? 'connected'
+          : whatsappDiagnostic?.reason === 'rate_limited'
+            ? 'error'
+            : 'configuration_incomplete'
     const instagramCredentialPresent = this.#hasAll([
       'META_INSTAGRAM_APP_ID',
       'META_INSTAGRAM_APP_SECRET',
@@ -66,16 +90,20 @@ export class IntegrationsService {
         id: 'whatsapp',
         name: 'WhatsApp Business',
         category: 'channel',
-        status: whatsappCredentialPresent
-          ? 'configuration_incomplete'
-          : 'not_configured',
+        status: whatsappStatus,
         backendImplemented: true,
         credentialPresent: whatsappCredentialPresent,
-        providerReachable: false,
-        webhookHealthy: false,
-        detail: whatsappCredentialPresent
-          ? 'Credenciais detectadas, mas adaptador, conta e webhook ainda não foram validados.'
-          : 'O protótipo mostrava Conectado, mas não há credencial completa nem webhook validado.',
+        providerReachable: whatsappProviderReachable,
+        webhookHealthy: whatsappWebhookHealthy,
+        detail: whatsappProviderReachable
+          ? whatsappWebhookHealthy
+            ? 'Conta, número e assinatura do webhook validados diretamente na Meta.'
+            : 'Conta e número validados, mas o aplicativo ainda não está inscrito no webhook da WABA.'
+          : whatsappCredentialPresent
+            ? whatsappDiagnostic?.reason === 'unauthorized'
+              ? 'O token foi recusado ou expirou; gere um token permanente com escopos mínimos.'
+              : 'Credenciais detectadas, mas a conta ainda não respondeu ao diagnóstico seguro.'
+            : 'O protótipo mostrava Conectado, mas não há credencial completa nem webhook validado.',
       },
       {
         id: 'instagram',

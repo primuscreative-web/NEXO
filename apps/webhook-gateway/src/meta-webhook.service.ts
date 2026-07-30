@@ -4,6 +4,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 export interface MetaWebhookResult {
   accepted: true
   duplicate: boolean
+  payload: unknown
 }
 
 @Injectable()
@@ -31,9 +32,11 @@ export class MetaWebhookService {
     const now = Date.now()
     this.prune(now)
     const deliveryId = createHash('sha256').update(rawBody).digest('hex')
-    if (this.seen.has(deliveryId)) return { accepted: true, duplicate: true }
+    const payload = this.parsePayload(rawBody)
+    if (this.seen.has(deliveryId))
+      return { accepted: true, duplicate: true, payload }
     this.seen.set(deliveryId, now + this.replayWindowMs)
-    return { accepted: true, duplicate: false }
+    return { accepted: true, duplicate: false, payload }
   }
 
   private prune(now: number) {
@@ -49,5 +52,13 @@ export class MetaWebhookService {
       leftBuffer.length === rightBuffer.length &&
       timingSafeEqual(leftBuffer, rightBuffer)
     )
+  }
+
+  private parsePayload(rawBody: Buffer): unknown {
+    try {
+      return JSON.parse(rawBody.toString('utf8')) as unknown
+    } catch {
+      throw new Error('META_PAYLOAD_INVALID')
+    }
   }
 }

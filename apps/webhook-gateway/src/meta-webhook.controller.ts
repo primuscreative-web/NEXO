@@ -41,7 +41,8 @@ export class MetaWebhookController {
   ) {
     if (!request.rawBody) throw new ForbiddenException()
     try {
-      return this.webhooks.accept(request.rawBody, signature)
+      const result = this.webhooks.accept(request.rawBody, signature)
+      return { accepted: result.accepted, duplicate: result.duplicate }
     } catch {
       throw new ForbiddenException()
     }

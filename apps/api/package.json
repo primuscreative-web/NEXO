@@ -39,6 +39,7 @@
     "@nexo/organization": "workspace:*",
     "@nexo/platform": "workspace:*",
     "@nexo/shared": "workspace:*",
+    "@nexo/whatsapp": "workspace:*",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "class-transformer": "0.5.1",

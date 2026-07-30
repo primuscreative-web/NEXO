@@ -8,6 +8,7 @@ import {
 } from '@nexo/database'
 import { assertAuthorized, type PermissionKey } from '@nexo/organization'
 import { assertConversationTransition } from '@nexo/inbox'
+import { readWhatsAppCloudConfig, WhatsAppCloudApiClient } from '@nexo/whatsapp'
 import {
   Phase1Error,
   type AuthPrincipal,
@@ -198,6 +199,68 @@ export class InboxService {
     context: RequestContext,
   ) {
     const org = this.#org(principal)
+    const route = await this.#allowed(
+      principal,
+      'conversation.reply',
+      async (tx) => {
+        const conversation = await tx.conversation.findFirstOrThrow({
+          where: { organizationId: org, id: conversationId },
+        })
+        const account = await tx.channelAccount.findFirst({
+          where: {
+            organizationId: org,
+            inboxId: conversation.inboxId,
+            provider: 'WHATSAPP',
+            enabled: true,
+          },
+        })
+        const contactChannel = account
+          ? await tx.contactChannel.findFirst({
+              where: {
+                organizationId: org,
+                contactId: conversation.contactId,
+                provider: 'WHATSAPP',
+              },
+            })
+          : null
+        return { account, contactChannel }
+      },
+    )
+    let externalId = `sim:${randomUUID()}`
+    let provider = 'simulator'
+    if (route.account?.externalAccountId && route.contactChannel) {
+      const config = readWhatsAppCloudConfig()
+      if (!config)
+        throw new Phase1Error(
+          'integration_unavailable',
+          503,
+          'WhatsApp is not configured for this organization',
+        )
+      if (
+        route.account.externalAccountId !== config.phoneNumberId ||
+        process.env.META_WHATSAPP_ORGANIZATION_ID?.trim() !== org
+      )
+        throw new Phase1Error(
+          'integration_unavailable',
+          503,
+          'WhatsApp is not configured for this organization',
+        )
+      try {
+        externalId = (
+          await new WhatsAppCloudApiClient(config).sendText({
+            to: route.contactChannel.identifier,
+            body,
+          })
+        ).id
+        provider = 'whatsapp'
+      } catch {
+        throw new Phase1Error(
+          'provider_unavailable',
+          503,
+          'WhatsApp delivery is unavailable',
+        )
+      }
+    }
     return this.#allowed(principal, 'conversation.reply', async (tx) => {
       await tx.conversation.findFirstOrThrow({
         where: { organizationId: org, id: conversationId },
@@ -206,10 +269,11 @@ export class InboxService {
         data: {
           organizationId: org,
           conversationId,
-          externalId: `sim:${randomUUID()}`,
+          externalId,
           direction: 'OUTBOUND',
           status: 'SENT',
           body,
+          metadata: { provider },
         },
       })
       await tx.conversation.update({
