@@ -26,7 +26,11 @@ export class PreviewMetaWebhookController {
     @Query('hub.verify_token') token?: string,
     @Query('hub.challenge') challenge?: string,
   ) {
-    const verifiedChallenge = this.webhooks.verifyChallenge(mode, token, challenge)
+    const verifiedChallenge = this.webhooks.verifyChallenge(
+      mode,
+      token,
+      challenge,
+    )
     if (!verifiedChallenge) throw new ForbiddenException()
     return verifiedChallenge
   }
