@@ -3,8 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "default": "./dist/preview.js"
+    }
+  },
   "scripts": {
-    "build": "tsup src/main.ts --format esm --clean",
+    "build": "tsup src/main.ts src/preview.ts --format esm --dts --clean",
     "clean": "rimraf dist coverage",
     "dev": "tsx watch src/main.ts",
     "lint": "eslint src test",
@@ -27,6 +33,7 @@
     "@nexo/config": "workspace:*",
     "@nexo/database": "workspace:*",
     "@nexo/identity": "workspace:*",
+    "@nexo/inbox": "workspace:*",
     "@nexo/notification": "workspace:*",
     "@nexo/observability": "workspace:*",
     "@nexo/organization": "workspace:*",

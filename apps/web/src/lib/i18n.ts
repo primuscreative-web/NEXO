@@ -112,6 +112,7 @@ const ptBR = {
   'auth.cannotContinue': 'Não foi possível continuar',
   'auth.requestReceived': 'Solicitação recebida',
   'auth.processing': 'Processando',
+  'auth.connecting': 'Conectando ao servidor...',
   'auth.enter': 'Entrar',
   'auth.continue': 'Continuar',
   'auth.alternatives': 'Alternativas de acesso',

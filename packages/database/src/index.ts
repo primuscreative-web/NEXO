@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from './generated/client/client.js'
+import { PrismaClient, type Prisma } from './generated/client/client.js'
 
 const { Pool } = pg
 
@@ -37,6 +37,7 @@ export async function checkDatabaseHealth(
 }
 
 export type DatabaseClient = PrismaClient
+export type DatabaseJsonInput = Prisma.InputJsonValue
 export type DatabaseTransaction = Parameters<
   Parameters<PrismaClient['$transaction']>[0]
 >[0]
@@ -55,11 +56,14 @@ export function withTenant<T>(
   context: TenantContext,
   operation: (transaction: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-  return client.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${context.userId}, true)`
-    await transaction.$executeRaw`SELECT set_config('app.current_organization_id', ${context.organizationId}, true)`
-    return operation(transaction)
-  })
+  return client.$transaction(
+    async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${context.userId}, true)`
+      await transaction.$executeRaw`SELECT set_config('app.current_organization_id', ${context.organizationId}, true)`
+      return operation(transaction)
+    },
+    { maxWait: 15_000, timeout: 60_000 },
+  )
 }
 
 export function withUser<T>(
@@ -67,8 +71,11 @@ export function withUser<T>(
   userId: string,
   operation: (transaction: DatabaseTransaction) => Promise<T>,
 ): Promise<T> {
-  return client.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, true)`
-    return operation(transaction)
-  })
+  return client.$transaction(
+    async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('app.current_user_id', ${userId}, true)`
+      return operation(transaction)
+    },
+    { maxWait: 15_000, timeout: 60_000 },
+  )
 }

@@ -16,3 +16,9 @@ All notable project changes follow Keep a Changelog and Conventional Commits.
 - Responsive authenticated shell, centralized navigation, breadcrumbs, command palette, organization switcher and explicit placeholders for future phases.
 - Typed pt-BR catalog, centralized timezone-aware formatting and tenant-scoped frontend cache invalidation.
 - Component, WCAG 2.2 AA, visual regression and frontend bundle-budget quality gates.
+- Preview-only, access-key-protected password-reset capture for synthetic end-to-end validation.
+
+### Fixed
+
+- Preview authentication now tolerates Render cold starts, normalizes network and timeout failures, and never exposes raw `Failed to fetch` messages.
+- Tenant transactions allow bounded remote-database wait and execution windows so first-organization onboarding remains reliable on managed Preview infrastructure.

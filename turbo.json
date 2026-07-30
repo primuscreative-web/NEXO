@@ -1,7 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env", ".env.*", "tsconfig.base.json"],
-  "globalEnv": ["NODE_ENV", "LOG_LEVEL", "OTEL_SERVICE_NAME"],
+  "globalEnv": [
+    "NODE_ENV",
+    "LOG_LEVEL",
+    "OTEL_SERVICE_NAME",
+    "NEXO_BACKEND_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

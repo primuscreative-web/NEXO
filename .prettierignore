@@ -9,3 +9,4 @@ pnpm-lock.yaml
 *.docx
 *.zip
 packages/database/src/generated
+NEXO-preview-smoke-dispatch/

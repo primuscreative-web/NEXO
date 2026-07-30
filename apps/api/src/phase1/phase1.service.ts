@@ -10,6 +10,7 @@ import {
 import {
   createDatabaseClient,
   type DatabaseClient,
+  type DatabaseJsonInput,
   type DatabaseTransaction,
   withTenant,
   withUser,
@@ -81,6 +82,16 @@ const roleNames: Readonly<Record<SystemRoleKey, string>> = {
 const dummyPasswordHash =
   '$argon2id$v=19$m=19456,t=2,p=1$I1bT0YUdfnI4o3CKhvBQfQ$wxlLgHka8NX+XpjYRflDF1KlaiZIfiVcTP1FoxqwH0c'
 
+export function isEmailVerificationRequired(
+  environment: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'true') return true
+  if (environment.AUTH_EMAIL_VERIFICATION_REQUIRED === 'false') return false
+  return (
+    environment.APP_ENV !== 'preview' && environment.NODE_ENV !== 'development'
+  )
+}
+
 @Injectable()
 export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   readonly emails = new InMemoryEmailDeliveryAdapter()
@@ -149,7 +160,11 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
   async register(
     input: { email: string; name: string; password: string },
     context: RequestContext,
-  ): Promise<{ userId: string; verificationToken?: string }> {
+  ): Promise<{
+    userId: string
+    emailVerificationRequired: boolean
+    verificationToken?: string
+  }> {
     const assessment = assessPassword(input.password)
     if (!assessment.valid)
       throw new Phase1Error('weak_password', 422, assessment.errors.join(','))
@@ -158,6 +173,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     const verificationToken = generateOpaqueToken()
     const verificationHash = hashOpaqueToken(verificationToken)
     const userId = randomUUID()
+    const emailVerificationRequired = isEmailVerificationRequired()
 
     try {
       await this.#db().$transaction(async (transaction) => {
@@ -167,13 +183,20 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
             email: input.email.trim(),
             normalizedEmail,
             name: input.name.trim(),
+            ...(emailVerificationRequired
+              ? {}
+              : { emailVerifiedAt: new Date() }),
             credential: { create: { passwordHash } },
-            emailVerificationTokens: {
-              create: {
-                tokenHash: verificationHash,
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-              },
-            },
+            ...(emailVerificationRequired
+              ? {
+                  emailVerificationTokens: {
+                    create: {
+                      tokenHash: verificationHash,
+                      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    },
+                  },
+                }
+              : {}),
           },
         })
         await this.#audit(transaction, context, {
@@ -189,19 +212,24 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         })
       })
     } catch (error) {
-      if (this.#isUniqueViolation(error)) return { userId }
+      if (this.#isUniqueViolation(error))
+        return { userId, emailVerificationRequired }
       throw error
     }
 
-    await this.emails.send({
-      to: normalizedEmail,
-      template: 'verify-email',
-      parameters: { token: verificationToken },
-      idempotencyKey: `verify:${userId}`,
-    })
+    if (emailVerificationRequired)
+      await this.emails.send({
+        to: normalizedEmail,
+        template: 'verify-email',
+        parameters: { token: verificationToken },
+        idempotencyKey: `verify:${userId}`,
+      })
     return {
       userId,
-      ...(process.env.NODE_ENV === 'test' ? { verificationToken } : {}),
+      emailVerificationRequired,
+      ...(process.env.NODE_ENV === 'test' && emailVerificationRequired
+        ? { verificationToken }
+        : {}),
     }
   }
 
@@ -241,7 +269,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
       throw new Phase1Error('invalid_credentials', 401, 'Invalid credentials')
     }
 
-    if (!user.emailVerifiedAt)
+    if (isEmailVerificationRequired() && !user.emailVerifiedAt)
       throw new Phase1Error(
         'email_not_verified',
         403,
@@ -1752,13 +1780,23 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
           ...(context.userAgent ? { userAgent: context.userAgent } : {}),
           ...(context.traceId ? { traceId: context.traceId } : {}),
           ...(input.metadata
-            ? { metadata: sanitizeAuditMetadata(input.metadata) as object }
+            ? {
+                metadata: sanitizeAuditMetadata(
+                  input.metadata,
+                ) as DatabaseJsonInput,
+              }
             : {}),
           ...(input.before
-            ? { before: sanitizeAuditMetadata(input.before) as object }
+            ? {
+                before: sanitizeAuditMetadata(
+                  input.before,
+                ) as DatabaseJsonInput,
+              }
             : {}),
           ...(input.after
-            ? { after: sanitizeAuditMetadata(input.after) as object }
+            ? {
+                after: sanitizeAuditMetadata(input.after) as DatabaseJsonInput,
+              }
             : {}),
         },
       ],
@@ -1794,7 +1832,7 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
         ...(input.aggregateVersion !== undefined
           ? { aggregateVersion: input.aggregateVersion }
           : {}),
-        payload: input.payload as object,
+        payload: input.payload as DatabaseJsonInput,
       },
     })
   }
@@ -1818,7 +1856,9 @@ export class Phase1Service implements OnModuleInit, OnModuleDestroy {
     const pageItems = hasMore ? items.slice(0, limit) : items
     return {
       items: pageItems,
-      nextCursor: hasMore ? (pageItems.at(-1)?.id ?? null) : null,
+      nextCursor: hasMore
+        ? (pageItems[pageItems.length - 1]?.id ?? null)
+        : null,
     }
   }
 

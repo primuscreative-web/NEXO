@@ -532,6 +532,64 @@
     color: var(--nexo-foreground-muted);
   }
 
+  .nexo-integration-card {
+    display: grid;
+    align-content: start;
+    gap: var(--nexo-space-3);
+  }
+
+  .nexo-integration-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--nexo-space-3);
+  }
+
+  .nexo-integration-card__header > svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--nexo-primary);
+  }
+
+  .nexo-integration-card h2,
+  .nexo-integration-card p {
+    margin: 0;
+  }
+
+  .nexo-integration-card p,
+  .nexo-integration-checked-at {
+    color: var(--nexo-foreground-muted);
+  }
+
+  .nexo-integration-evidence {
+    display: grid;
+    gap: var(--nexo-space-2);
+    margin: 0;
+  }
+
+  .nexo-integration-evidence > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--nexo-space-3);
+    border-top: 1px solid var(--nexo-border);
+    padding-top: var(--nexo-space-2);
+  }
+
+  .nexo-integration-evidence dt,
+  .nexo-integration-evidence dd {
+    margin: 0;
+    font-size: var(--nexo-text-sm);
+  }
+
+  .nexo-integration-evidence dd {
+    font-weight: 700;
+  }
+
+  .nexo-integration-checked-at {
+    margin: var(--nexo-space-4) 0 0;
+    font-size: var(--nexo-text-sm);
+  }
+
   .nexo-action-list,
   .nexo-lab-row {
     display: flex;
@@ -1213,6 +1271,270 @@
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
+    }
+  }
+
+  .nexo-inbox {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .nexo-inbox-notice {
+    margin: 0;
+    border: 1px solid var(--nexo-border);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  .nexo-inbox-grid {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.85fr) minmax(24rem, 1.75fr) minmax(
+        17rem,
+        0.9fr
+      );
+    min-height: 42rem;
+    overflow: hidden;
+    border: 1px solid var(--nexo-border);
+    border-radius: 1rem;
+    background: var(--nexo-surface);
+  }
+  .nexo-inbox-list,
+  .nexo-inbox-details {
+    display: grid;
+    align-content: start;
+    gap: 0.9rem;
+    padding: 1rem;
+    background: var(--nexo-surface-muted);
+  }
+  .nexo-inbox-list {
+    border-right: 1px solid var(--nexo-border);
+  }
+  .nexo-inbox-details {
+    border-left: 1px solid var(--nexo-border);
+  }
+  .nexo-inbox-list input,
+  .nexo-inbox-details select,
+  .nexo-inbox-details textarea,
+  .nexo-inbox-composer textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--nexo-border);
+    border-radius: 0.625rem;
+    padding: 0.65rem;
+    background: var(--nexo-surface);
+    color: inherit;
+  }
+  .nexo-inbox-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .nexo-inbox-filters button,
+  .nexo-inbox-tags button {
+    border: 1px solid var(--nexo-border);
+    border-radius: 999px;
+    padding: 0.3rem 0.55rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+  .nexo-inbox-filters button[aria-selected='true'] {
+    background: var(--nexo-brand);
+    color: #fff;
+  }
+  .nexo-inbox-list-items {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .nexo-inbox-list-items > button {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.7rem;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .nexo-inbox-list-items > button:hover,
+  .nexo-inbox-list-items > button.is-selected {
+    background: color-mix(in srgb, var(--nexo-brand) 12%, transparent);
+  }
+  .nexo-inbox-list-items small {
+    display: block;
+    opacity: 0.7;
+  }
+  .nexo-inbox-list-items b {
+    display: grid;
+    place-items: center;
+    min-width: 1.35rem;
+    min-height: 1.35rem;
+    border-radius: 999px;
+    background: var(--nexo-brand);
+    color: #fff;
+    font-size: 0.75rem;
+  }
+  .nexo-inbox-avatar {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--nexo-brand);
+    color: #fff;
+    font-weight: 700;
+  }
+  .nexo-inbox-thread {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-width: 0;
+  }
+  .nexo-inbox-thread-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--nexo-border);
+  }
+  .nexo-inbox-thread-header h2,
+  .nexo-inbox-details h2,
+  .nexo-inbox-details h3 {
+    margin: 0;
+  }
+  .nexo-inbox-thread-header p {
+    margin: 0.25rem 0 0;
+    opacity: 0.72;
+  }
+  .nexo-inbox-status {
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  .status-pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .status-closed,
+  .status-resolved {
+    background: #e2e8f0;
+    color: #334155;
+  }
+  .nexo-inbox-timeline {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    overflow: auto;
+    padding: 1.25rem;
+  }
+  .nexo-message,
+  .nexo-note {
+    max-width: 82%;
+    border-radius: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    background: var(--nexo-surface-muted);
+  }
+  .nexo-message.is-outbound {
+    justify-self: end;
+    background: color-mix(in srgb, var(--nexo-brand) 18%, white);
+  }
+  .nexo-note {
+    max-width: 100%;
+    border-left: 3px solid #f59e0b;
+    background: #fffbeb;
+  }
+  .nexo-message p,
+  .nexo-note p {
+    margin: 0 0 0.35rem;
+    white-space: pre-wrap;
+  }
+  .nexo-message small,
+  .nexo-note small {
+    opacity: 0.65;
+  }
+  .nexo-inbox-composer {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--nexo-border);
+  }
+  .nexo-inbox-composer textarea,
+  .nexo-inbox-details textarea {
+    min-height: 4.5rem;
+    resize: vertical;
+  }
+  .nexo-inbox-details label {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .nexo-inbox-details form {
+    display: grid;
+    gap: 0.55rem;
+  }
+  .nexo-inbox-details dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+  }
+  .nexo-inbox-details dt {
+    opacity: 0.65;
+  }
+  .nexo-inbox-details dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  .nexo-inbox-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.5rem 0;
+  }
+  .nexo-inbox-empty {
+    align-self: center;
+    justify-self: center;
+    opacity: 0.7;
+  }
+  @media (max-width: 1050px) {
+    .nexo-inbox-grid {
+      grid-template-columns: minmax(13rem, 0.8fr) minmax(24rem, 1.6fr);
+    }
+    .nexo-inbox-details {
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-left: 0;
+      border-top: 1px solid var(--nexo-border);
+    }
+    .nexo-inbox-details form {
+      grid-column: span 2;
+    }
+  }
+  @media (max-width: 720px) {
+    .nexo-inbox-grid {
+      grid-template-columns: 1fr;
+    }
+    .nexo-inbox-list {
+      border-right: 0;
+      border-bottom: 1px solid var(--nexo-border);
+      max-height: 20rem;
+      overflow: auto;
+    }
+    .nexo-inbox-details {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .nexo-inbox-details form {
+      grid-column: auto;
+    }
+    .nexo-inbox-thread {
+      min-height: 36rem;
     }
   }
 }

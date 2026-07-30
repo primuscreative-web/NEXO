@@ -32,6 +32,10 @@ describe.skipIf(!configured)('transactional Outbox relay store', () => {
         correlationId: randomUUID(),
         payload: { safe: true },
         occurredAt: new Date(),
+        // The relay is intentionally FIFO. Put this fixture ahead of events
+        // created concurrently by other integration files so the assertion
+        // tests leasing, not Vitest's cross-file scheduling order.
+        createdAt: new Date('2000-01-01T00:00:00.000Z'),
       },
     })
     const first = new PostgresOutboxStore(database!)

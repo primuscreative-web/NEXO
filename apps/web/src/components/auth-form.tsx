@@ -5,11 +5,21 @@ import { CheckCircle2, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, normalizeApiError } from '../lib/api'
 import { t } from '../lib/i18n'
 import { ThemeToggle } from './theme-toggle'
 
 type AuthMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify'
+
+interface OrganizationAccess {
+  organization: {
+    id: string
+  }
+}
+
+interface RegisterResult {
+  emailVerificationRequired: boolean
+}
 
 const titles: Record<AuthMode, string> = {
   login: t('auth.title.login'),
@@ -40,9 +50,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             password: data.get('password'),
           }),
         })
-        router.push('/dashboard')
+        const organizations =
+          await apiFetch<OrganizationAccess[]>('/v1/organizations')
+        const organizationId = organizations[0]?.organization.id
+        if (organizations.length === 1 && organizationId) {
+          await apiFetch(`/v1/organizations/${organizationId}/select`, {
+            method: 'POST',
+          })
+        }
+        window.location.assign('/dashboard')
       } else if (mode === 'register') {
-        await apiFetch('/v1/auth/register', {
+        const result = await apiFetch<RegisterResult>('/v1/auth/register', {
           method: 'POST',
           body: JSON.stringify({
             name: data.get('name'),
@@ -50,7 +68,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             password: data.get('password'),
           }),
         })
-        router.push('/verify-email')
+        router.push(
+          result.emailVerificationRequired ? '/verify-email' : '/login',
+        )
       } else if (mode === 'forgot') {
         await apiFetch('/v1/auth/forgot-password', {
           method: 'POST',
@@ -76,7 +96,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         router.push('/login?verified=1')
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('auth.unexpected'))
+      setError(normalizeApiError(cause).message)
     } finally {
       setPending(false)
     }
@@ -211,7 +231,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             <Button
               block
               loading={pending}
-              loadingLabel={t('auth.processing')}
+              loadingLabel={t('auth.connecting')}
               type="submit"
             >
               {mode === 'login' ? t('auth.enter') : t('auth.continue')}

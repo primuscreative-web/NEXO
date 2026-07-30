@@ -56,6 +56,30 @@ enum OutboxStatus {
   DEAD
 }
 
+enum ConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+  INTERNAL
+}
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+enum ChannelProviderKey {
+  SIMULATOR
+  WHATSAPP
+}
+
 model User {
   id                      String                   @id @default(uuid()) @db.Uuid
   email                   String                   @db.VarChar(320)
@@ -359,4 +383,142 @@ model OutboxEvent {
   @@index([status, nextAttemptAt, createdAt])
   @@index([organizationId, createdAt(sort: Desc)])
   @@map("platform_outbox_events")
+}
+
+model Inbox {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name String @db.VarChar(120)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([organizationId, name])
+  @@unique([organizationId, id])
+  @@map("inbox_inboxes")
+}
+
+model Contact {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name String @db.VarChar(160)
+  email String? @db.VarChar(320)
+  phone String? @db.VarChar(40)
+  company String? @db.VarChar(160)
+  avatarUrl String? @db.VarChar(2048)
+  source String? @db.VarChar(80)
+  notes String? @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([organizationId, name])
+  @@index([organizationId, email])
+  @@index([organizationId, phone])
+  @@unique([organizationId, id])
+  @@map("crm_contacts")
+}
+
+model ContactChannel {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  contactId String @db.Uuid
+  provider ChannelProviderKey
+  identifier String @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, provider, identifier])
+  @@index([organizationId, contactId])
+  @@map("crm_contact_channels")
+}
+
+model Tag {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name String @db.VarChar(80)
+  color String? @db.VarChar(32)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, name])
+  @@unique([organizationId, id])
+  @@map("inbox_tags")
+}
+
+model ConversationTag {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  conversationId String @db.Uuid
+  tagId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, conversationId, tagId])
+  @@index([organizationId, conversationId])
+  @@index([organizationId, tagId])
+  @@map("inbox_conversation_tags")
+}
+
+model Conversation {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  inboxId String @db.Uuid
+  contactId String @db.Uuid
+  status ConversationStatus @default(OPEN)
+  priority Int @default(0)
+  assigneeMembershipId String? @db.Uuid
+  teamId String? @db.Uuid
+  lastMessageAt DateTime? @db.Timestamptz(3)
+  unreadCount Int @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([organizationId, status, lastMessageAt(sort: Desc)])
+  @@index([organizationId, assigneeMembershipId, status])
+  @@unique([organizationId, id])
+  @@map("inbox_conversations")
+}
+
+model Message {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  conversationId String @db.Uuid
+  externalId String? @db.VarChar(255)
+  direction MessageDirection
+  status MessageStatus
+  body String? @db.Text
+  replyToMessageId String? @db.Uuid
+  metadata Json?
+  externalOccurredAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, externalId])
+  @@index([organizationId, conversationId, createdAt])
+  @@map("inbox_messages")
+}
+
+model InternalNote {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  conversationId String @db.Uuid
+  authorMembershipId String @db.Uuid
+  body String @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([organizationId, conversationId, createdAt])
+  @@map("inbox_internal_notes")
+}
+
+model ChannelAccount {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  inboxId String @db.Uuid
+  provider ChannelProviderKey
+  displayName String @db.VarChar(120)
+  externalAccountId String? @db.VarChar(255)
+  encryptedConfig Json?
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, provider, externalAccountId])
+  @@unique([organizationId, id])
+  @@map("inbox_channel_accounts")
+}
+
+model ChannelEvent {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  channelAccountId String @db.Uuid
+  externalId String @db.VarChar(255)
+  type String @db.VarChar(100)
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([organizationId, channelAccountId, externalId])
+  @@map("inbox_channel_events")
 }
