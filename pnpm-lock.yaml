@@ -185,6 +185,9 @@ importers:
       '@nexo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@nexo/whatsapp':
+        specifier: workspace:*
+        version: link:../../packages/whatsapp
       class-transformer:
         specifier: 0.5.1
         version: 0.5.1
@@ -273,6 +276,9 @@ importers:
       '@nexo/webhook-gateway':
         specifier: workspace:*
         version: link:../webhook-gateway
+      '@nexo/whatsapp':
+        specifier: workspace:*
+        version: link:../../packages/whatsapp
       '@nexo/worker':
         specifier: workspace:*
         version: link:../worker
@@ -800,6 +806,24 @@ importers:
       jsdom:
         specifier: 29.1.1
         version: 29.1.1
+      rimraf:
+        specifier: 6.0.1
+        version: 6.0.1
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.0(@swc/core@1.15.43)(jiti@2.7.0)(postcss@8.5.24)(tsx@4.20.6)(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6)
+
+  packages/whatsapp:
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 3.2.6
+        version: 3.2.6(vitest@3.2.6(@types/node@24.9.1)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.20.6))
       rimraf:
         specifier: 6.0.1
         version: 6.0.1

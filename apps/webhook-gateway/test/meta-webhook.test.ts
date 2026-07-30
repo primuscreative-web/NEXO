@@ -28,6 +28,7 @@ describe('MetaWebhookService', () => {
     expect(service.accept(body, signature)).toEqual({
       accepted: true,
       duplicate: false,
+      payload: { object: 'whatsapp_business_account' },
     })
     expect(() => service.accept(body, 'sha256=forged')).toThrow(
       'META_SIGNATURE_INVALID',
@@ -40,5 +41,14 @@ describe('MetaWebhookService', () => {
     const signature = `sha256=${createHmac('sha256', 'test-app-secret').update(body).digest('hex')}`
     expect(service.accept(body, signature).duplicate).toBe(false)
     expect(service.accept(body, signature).duplicate).toBe(true)
+  })
+
+  it('rejects a signed payload that is not valid JSON', () => {
+    const service = new MetaWebhookService()
+    const body = Buffer.from('not-json')
+    const signature = `sha256=${createHmac('sha256', 'test-app-secret').update(body).digest('hex')}`
+    expect(() => service.accept(body, signature)).toThrow(
+      'META_PAYLOAD_INVALID',
+    )
   })
 })

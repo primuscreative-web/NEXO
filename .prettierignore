@@ -10,3 +10,4 @@ pnpm-lock.yaml
 *.zip
 packages/database/src/generated
 NEXO-preview-smoke-dispatch/
+.playwright-cli/

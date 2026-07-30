@@ -31,6 +31,7 @@
     "@nexo/shared": "workspace:*",
     "@nexo/webhook-gateway": "workspace:*",
     "@nexo/worker": "workspace:*",
+    "@nexo/whatsapp": "workspace:*",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
     "jose": "6.2.3",

@@ -16,6 +16,7 @@ import { PreviewHealthController } from './health.controller.js'
 import { PreviewMetaWebhookController } from './meta-webhook.controller.js'
 import { PreviewMailboxController } from './preview-mailbox.controller.js'
 import { PreviewWebhookHealthController } from './webhook-health.controller.js'
+import { WhatsAppWebhookProcessor } from './whatsapp-webhook.processor.js'
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])],
@@ -34,6 +35,7 @@ import { PreviewWebhookHealthController } from './webhook-health.controller.js'
     IntegrationsService,
     OutboxRelayService,
     MetaWebhookService,
+    WhatsAppWebhookProcessor,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AccessTokenGuard },
   ],

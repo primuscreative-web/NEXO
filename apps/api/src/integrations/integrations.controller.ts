@@ -9,7 +9,7 @@ export class IntegrationsController {
   constructor(private readonly integrations: IntegrationsService) {}
 
   @Get()
-  list() {
+  async list() {
     return this.integrations.list()
   }
 }
