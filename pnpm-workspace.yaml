@@ -25,16 +25,16 @@ catalog:
   '@nestjs/common': 11.1.28
   '@nestjs/core': 11.1.28
   '@nestjs/platform-fastify': 11.1.28
-  '@opentelemetry/api': 1.9.0
-  '@types/node': 24.9.1
-  pino: 10.1.0
+  '@opentelemetry/api': 1.9.1
+  '@types/node': 26.1.2
+  pino: 10.3.1
   reflect-metadata: 0.2.2
   rxjs: 7.8.2
-  tsx: 4.20.6
-  tsup: 8.5.0
-  typescript: 5.9.3
-  vitest: 3.2.6
-  zod: 4.1.12
+  tsx: 4.23.5
+  tsup: 8.5.1
+  typescript: 7.0.2
+  vitest: 4.1.10
+  zod: 4.4.3
 
 minimumReleaseAgeExclude:
   - '@fastify/cookie@11.1.2'
