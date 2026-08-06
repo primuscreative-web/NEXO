@@ -1,4 +1,4 @@
-FROM node:24.13.0-bookworm-slim AS build
+FROM node:26.5.1-bookworm-slim AS build
 ARG APP_NAME
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -8,7 +8,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter "$APP_NAME"... build
 
-FROM node:24.13.0-bookworm-slim AS runtime
+FROM node:26.5.1-bookworm-slim AS runtime
 ARG APP_NAME
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
