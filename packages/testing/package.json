@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.3",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
